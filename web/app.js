@@ -190,6 +190,53 @@ defineItem("topbar", {
         </button>`,
 });
 
+/** A new session in the folder this one works in, as `/new` does: it asks for no folder. */
+function NewSessionButton() {
+    const [starting, setStarting] = useState(false);
+    const { view, server } = store.state;
+    const cwd = view.agent?.cwd ?? view.conversation?.cwd;
+    const folder = String(cwd ?? "")
+        .replace(/\/+$/, "")
+        .split("/")
+        .pop();
+
+    async function startHere() {
+        if (starting) {
+            return;
+        }
+
+        setStarting(true);
+
+        try {
+            const created = await attempt(() => actions.createSession(cwd));
+
+            if (created) {
+                navigate(created.id);
+            }
+        } finally {
+            setStarting(false);
+        }
+    }
+
+    return html`<button
+        class="icon-button new-session"
+        data-part="topbar-new"
+        aria-label=${folder ? `New session in ${folder}` : "New session in this folder"}
+        title=${`New session in ${folder ? shortPath(cwd, server?.home) : "this folder"}: no folder picker`}
+        disabled=${starting}
+        onClick=${startHere}
+    >
+        <${Icon} name="plus" size=${18} />
+    </button>`;
+}
+
+defineItem("topbar", {
+    id: "core:new-session",
+    label: "New session in this folder",
+    order: 750,
+    render: () => canSteer() && !scoped() && html`<${NewSessionButton} />`,
+});
+
 function Topbar() {
     const { view, server } = store.state;
     const conversation = view.conversation;

@@ -1081,6 +1081,22 @@ kbd {
     color: var(--accent);
 }
 
+/* The one button there that makes something rather than toggling: a new session in this folder, as `/new`. */
+.topbar .new-session {
+    color: var(--accent);
+}
+
+@media (hover: hover) {
+    .topbar .new-session:hover {
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+}
+
+.topbar .new-session:disabled {
+    opacity: 0.45;
+}
+
 /* Who is here: an avatar with its online mark, and how many more, in a pill that lights while the panel is open. */
 .topbar .people-button {
     height: 36px;
