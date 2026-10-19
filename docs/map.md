@@ -88,7 +88,7 @@ A module split into parts keeps its name for the part others import, with the re
 | `files.ts`                             | The files in a session's folder for `@` mentions: git's list, or a capped walk; kept briefly per folder, versioned, and compressed once. The file viewer's reads, and the paths a message mentions |
 | `changes.ts`, `worktrees.ts`, `git.ts` | The Files tile's Changes (and undoing a file there), per-session worktrees, and the git runner both use                                                                                            |
 | `branches.ts`                          | A session's git branch: read from the repository's HEAD for its view (`Room` looks every few seconds), listed and switched for the branch picker                                                   |
-| `git-status.ts` | Every folder the visible sessions work in, for the Git status panel: grouped by folder, each branch, newest commits, and uncommitted files with line counts; kept 15 seconds, four folders at a time |
+| `git-status.ts` | Every folder the visible active sessions work in, for the Git status panel: grouped by folder (a folder only archived sessions use is left out), each branch, newest commits, and uncommitted files with line counts; kept 15 seconds, four folders at a time |
 | `export.ts`                            | A session as Markdown                                                                                                                                                                              |
 
 ### HTTP: `http.ts` and `http/`

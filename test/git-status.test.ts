@@ -37,7 +37,7 @@ test("a folder's branch, commits, and uncommitted line counts", async () => {
     assert.equal(status.folders.length, 1);
     assert.equal(folder?.cwd, repo);
     assert.equal(folder?.name, "git-status-changed");
-    assert.equal(folder?.sessions, 3);
+    assert.equal(folder?.sessions, 2);
     assert.equal(folder?.archived, 1);
     assert.equal(folder?.state, "changed");
     assert.equal(folder?.repo?.branch, "feature");
@@ -114,4 +114,16 @@ test("a session invited to one folder sees only that folder's changes", async ()
         folder?.repo?.changes.list.map((file) => file.path),
         ["inside/keep.txt", "inside/new.txt"],
     );
+});
+
+test("a folder only archived sessions use is not listed", async () => {
+    const archived = repoIn("git-status-archived");
+
+    writeFileSync(join(archived, "keep.txt"), "a\n");
+    gitIn(archived, "add", "-A");
+    gitIn(archived, "commit", "-qm", "first");
+
+    const status = await gitStatuses([{ cwd: archived, archived: true }], { refresh: true });
+
+    assert.equal(status.folders.length, 0);
 });
