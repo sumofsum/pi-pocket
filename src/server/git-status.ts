@@ -25,11 +25,11 @@ export type GitFolder = {
     cwd: string;
     /** The folder's own name, as a session list shows it. */
     name: string;
-    /** How many sessions people can see work here. */
+    /** How many active sessions people can see work here; archived ones are counted apart. */
     sessions: number;
-    /** Those of them that are archived. */
+    /** Archived sessions in this folder, which add no folder of their own. */
     archived: number;
-    /** One of them works in a git worktree of its own. */
+    /** An active session here works in a git worktree of its own. */
     worktree: boolean;
     state: "changed" | "clean" | "none" | "error";
     /** Why git could not read the folder, for `state: "error"`. */
@@ -398,18 +398,20 @@ export async function gitStatuses(
             folders.set(cwd, {
                 cwd,
                 name: basename(cwd) || cwd,
-                sessions: 1,
+                sessions: session.archived === true ? 0 : 1,
                 archived: session.archived === true ? 1 : 0,
-                worktree: session.worktree !== undefined,
+                worktree: session.archived !== true && session.worktree !== undefined,
             });
+        } else if (session.archived === true) {
+            known.archived++;
         } else {
             known.sessions++;
-            known.archived += session.archived === true ? 1 : 0;
             known.worktree ||= session.worktree !== undefined;
         }
     }
 
-    const entries = [...folders.values()];
+    // A folder only archived sessions use is not a working folder: it would only show work nobody is in.
+    const entries = [...folders.values()].filter((folder) => folder.sessions > 0);
     const listed = new Array<GitFolder>(entries.length);
     let next = 0;
 
