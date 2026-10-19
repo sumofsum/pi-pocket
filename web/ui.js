@@ -940,6 +940,8 @@ const ICONS = {
     diff: "M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8zM14 3v5h5M9 11.5h6M12 8.5v6M9 17.5h6",
     back: "M15 18l-6-6 6-6",
     clock: "M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2",
+    // A timer: a stopwatch with its button and hand.
+    timer: "M10 2h4M12 2v3M12 13l3-3M12 21a8 8 0 100-16 8 8 0 000 16z",
     chevron: "M9 6l6 6-6 6",
     down: "M6 9l6 6 6-6",
     up: "M12 19V5M5 12l7-7 7 7",

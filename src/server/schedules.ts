@@ -19,12 +19,13 @@ import {
 } from "@earendil-works/pi-durable";
 import type { PocketApp } from "./app.ts";
 import { addActivity } from "./collab.ts";
+import type { User } from "./config.ts";
 import { ChatDoc, type Schedule, ScheduleDoc } from "./docs.ts";
 import { describe, HttpError } from "./errors.ts";
 import { FROM_PREFIX } from "./entry-format.ts";
 import { snippet } from "./projection.ts";
 import { ownRequest, requestFor } from "./requests.ts";
-import { nextRepeat, parseWhen } from "./when.ts";
+import { describeRepeat, nextRepeat, parseWhen } from "./when.ts";
 
 const context = BACKGROUND_CONTEXT;
 
@@ -51,6 +52,19 @@ async function stored(
 }
 
 const finished = { status: "terminal", outcome: { status: "completed", result: null } } as const;
+
+/** A scheduled message with the session it belongs to, as the list across sessions shows it. */
+export type SessionSchedule = Pick<
+    Schedule,
+    "id" | "text" | "next" | "every" | "zone" | "by" | "requestedBy" | "createdAt" | "runs"
+> & {
+    /** The session it was set up in, to open it. */
+    conversationId: number;
+    /** The session's title. */
+    title: string;
+    /** Its repeat in words, when it repeats: "every 6 hours". */
+    repeat?: string;
+};
 
 export type ScheduleRequest = {
     /** When it goes out (`in 30m`, `every weekday 8:00`, …), followed by the message unless `text` is given. */
@@ -365,6 +379,58 @@ export class Schedules {
         }, context);
 
         return schedule;
+    }
+
+    /**
+     * Every scheduled message in the sessions `user` can see, soonest first; with `session`, only that session's (a
+     * subagent's id is its root session's). Schedules are set up in root sessions only: a subagent's would show in no
+     * session's list. PiP's own conversation is not in the session list, but its schedules are this person's too.
+     */
+    async listAll(user: User, session?: ConversationId): Promise<SessionSchedule[]> {
+        const app = this.#app;
+        const only = session === undefined ? undefined : Number(app.rootOf(session));
+        const roots = new Map<number, string>();
+
+        for (const each of app.sessions(user)) {
+            if (app.canSee(user, each.id as unknown as ConversationId)) {
+                roots.set(each.id, each.title ?? "New session");
+            }
+        }
+
+        const pip = app.pip.idOf(user.id);
+
+        if (pip !== undefined && app.canSee(user, pip)) {
+            roots.set(Number(pip), app.sessionMeta(pip)?.title ?? "PiP");
+        }
+
+        const rows = await Promise.all(
+            [...roots]
+                .filter(([id]) => only === undefined || id === only)
+                .map(async ([id, title]) => {
+                    const conversationId = id as unknown as ConversationId;
+
+                    return (await this.list(conversationId)).map((schedule) => ({
+                        id: schedule.id,
+                        conversationId: id,
+                        title,
+                        text: schedule.text,
+                        next: schedule.next,
+                        ...(schedule.every === undefined ? {} : { every: schedule.every }),
+                        ...(schedule.every === undefined
+                            ? {}
+                            : { repeat: describeRepeat(schedule.every) }),
+                        zone: schedule.zone,
+                        ...(schedule.by === undefined ? {} : { by: schedule.by }),
+                        ...(schedule.requestedBy === undefined
+                            ? {}
+                            : { requestedBy: schedule.requestedBy }),
+                        createdAt: schedule.createdAt,
+                        runs: schedule.runs,
+                    }));
+                }),
+        );
+
+        return rows.flat().sort((a, b) => a.next - b.next);
     }
 
     /** A conversation's schedules, soonest first. */

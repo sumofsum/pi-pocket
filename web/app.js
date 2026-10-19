@@ -44,6 +44,7 @@ import {
     actions,
     attempt,
     canSteer,
+    closeSheet,
     dismiss,
     filesShown,
     holdNotice,
@@ -762,6 +763,22 @@ addEventListener("keydown", (event) => {
         if (event.code === "KeyP" && store.state.server?.peeks === true) {
             event.preventDefault();
             togglePeeks();
+
+            return;
+        }
+
+        // Scheduled messages in every session: its page, from wherever you are.
+        if (
+            event.code === "KeyS" &&
+            store.state.server?.extensions?.includes("pocket-schedules") === true
+        ) {
+            event.preventDefault();
+
+            if (store.state.sheet?.type === "all-schedules") {
+                closeSheet();
+            } else {
+                openSheet({ type: "all-schedules" });
+            }
 
             return;
         }

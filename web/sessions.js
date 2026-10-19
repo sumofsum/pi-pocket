@@ -1434,6 +1434,18 @@ function Rail({ foldable = false, folded = false }) {
             <${Icon} name="pulse" size=${19} />
             ${busy > 0 && html`<span class="rail-count">${busy}</span>`}
         </button>
+        ${
+            store.state.server?.extensions?.includes("pocket-schedules") === true &&
+            html`<button
+                class="rail-button rail-schedules"
+                data-part="rail-button"
+                title="Scheduled messages in every session (Alt+S)"
+                aria-label="Scheduled messages in every session"
+                onClick=${() => openSheet({ type: "all-schedules" })}
+            >
+                <${Icon} name="timer" size=${19} />
+            </button>`
+        }
         <button
             class=${`rail-button rail-agents ${live > 0 ? "lit" : ""} ${board ? "open" : ""}`}
             data-part="rail-button"

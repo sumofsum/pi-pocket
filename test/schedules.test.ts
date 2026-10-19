@@ -327,3 +327,117 @@ test("a schedule is cancelled once its person may not steer anymore or a limit i
         "neither went out",
     );
 });
+
+test("scheduled messages list across the sessions a person can see, soonest first", async () => {
+    const first = await newSession(app);
+    const second = await newSession(app);
+
+    await app.commands.updateSession(second, owner(app), { title: "Deploys" });
+    const early = await app.commands.schedule(second, owner(app), {
+        when: "in 20m early",
+        zone: "UTC",
+    });
+    const late = await app.commands.schedule(first, owner(app), {
+        when: "in 2h late",
+        zone: "UTC",
+    });
+    const repeat = await app.commands.schedule(first, owner(app), {
+        when: "every 6h repeat",
+        zone: "UTC",
+    });
+    const ours = [Number(first), Number(second)];
+    const mine = <T extends { conversationId: number }>(list: T[]) =>
+        list.filter((each) => ours.includes(each.conversationId));
+
+    const all = mine(await app.schedules.listAll(owner(app)));
+
+    assert.deepEqual(
+        all.map((each) => each.id),
+        [early.id, late.id, repeat.id],
+        "soonest first, across sessions",
+    );
+    assert.equal(all[0]?.conversationId, Number(second), "the session it belongs to");
+    assert.equal(all[0]?.title, "Deploys", "the session's title");
+    assert.equal(all[0]?.repeat, undefined, "a one-off");
+    assert.equal(all[2]?.repeat, "every 6 hours", "a repeat in words");
+    assert.deepEqual(Object.keys(all[2]!.every!), ["minutes"], "its repeat too");
+
+    assert.deepEqual(
+        mine(await app.schedules.listAll(owner(app), first)).map((each) => each.id),
+        [late.id, repeat.id],
+        "one session only",
+    );
+
+    const sam = app.config.addUser("Sam", "guest", [String(second)]);
+
+    assert.deepEqual(
+        mine(await app.schedules.listAll(sam.user)).map((each) => each.id),
+        [early.id],
+        "a person invited to one session sees only its schedules",
+    );
+
+    // PiP's conversation is kept out of the session list, but its own schedules are its person's too.
+    const pip = await app.pip.ensure(owner(app));
+    const pipSchedule = await app.commands.schedule(pip, owner(app), {
+        when: "in 3h check PiP's reminders",
+        zone: "UTC",
+    });
+    const pipRow = (await app.schedules.listAll(owner(app))).find(
+        (each) => each.id === pipSchedule.id,
+    );
+
+    assert.equal(pipRow?.conversationId, Number(pip));
+    assert.equal(pipRow?.title, "PiP", "PiP's own conversation too");
+    assert.equal(
+        (await app.schedules.listAll(sam.user)).some((each) => each.id === pipSchedule.id),
+        false,
+        "PiP belongs to its person alone",
+    );
+
+    const { createServer } = await import("node:http");
+    const { createHandler } = await import("../src/server/http.ts");
+    const server = createServer(
+        createHandler({ app, listen: { host: "127.0.0.1", port: 0 }, restart: () => {} }),
+    );
+
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+    const call = (token: string, path: string) =>
+        fetch(`${base}/api/${path}`, { headers: { authorization: `Bearer ${token}` } });
+
+    try {
+        const listed = (await (
+            await call(app.config.ownerToken, `schedules?session=${String(first)}`)
+        ).json()) as { id: string; conversationId: number }[];
+
+        assert.deepEqual(
+            mine(listed).map((each) => each.id),
+            [late.id, repeat.id],
+        );
+        assert.equal(
+            (await call(sam.token, `schedules?session=${String(first)}`)).status,
+            404,
+            "a session they cannot see",
+        );
+
+        const everything = (await (await call(sam.token, "schedules")).json()) as {
+            id: string;
+            conversationId: number;
+        }[];
+
+        assert.deepEqual(
+            everything.map((each) => each.id),
+            [early.id],
+            "the all-sessions route is scoped too",
+        );
+    } finally {
+        server.closeAllConnections();
+        server.close();
+        app.config.removeUser(sam.user.id);
+    }
+
+    await app.commands.cancelSchedule(second, owner(app), early.id);
+    await app.commands.cancelSchedule(first, owner(app), late.id);
+    await app.commands.cancelSchedule(first, owner(app), repeat.id);
+    await app.commands.cancelSchedule(pip, owner(app), pipSchedule.id);
+});

@@ -1145,12 +1145,20 @@ export const actions = {
     piSession: (path) => api(`pi-sessions/preview?path=${encodeURIComponent(path)}`),
     continuePiSession: (path) => api("pi-sessions/continue", { path }),
     /** `when` says when, then what Pi gets: `in 2h check the deploy`. Clock times are this device's. */
-    schedule: (when) =>
-        api(`c/${current()}/schedules`, {
+    schedule: (when, session = current()) =>
+        api(`c/${session}/schedules`, {
             when,
             zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
-    cancelSchedule: (id) => api(`c/${current()}/schedules/${encodeURIComponent(id)}/cancel`, {}),
+    /** Every scheduled message this person can see, across sessions; `session` narrows it to one. */
+    schedules: (session) =>
+        api(
+            session === undefined
+                ? "schedules"
+                : `schedules?session=${encodeURIComponent(session)}`,
+        ),
+    cancelSchedule: (id, session = current()) =>
+        api(`c/${session}/schedules/${encodeURIComponent(id)}/cancel`, {}),
     setGoal: (command) => api(`c/${current()}/goal`, { command }),
     removeWorktree: (force) => api(`c/${current()}/worktree`, { remove: true, force }),
     clearGoal: () => api(`c/${current()}/goal`, { clear: true }),
