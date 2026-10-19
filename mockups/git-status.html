@@ -1,0 +1,2215 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Git status panel — mockup</title>
+        <style>
+            @import url("https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=JetBrains+Mono:wght@400..700&display=swap");
+
+            :root {
+                --o-bg: #1a1b26;
+                --o-bg-dark: #13141c;
+                --o-bg-darker: #0e0e14;
+                --o-bg-light: #24283b;
+                --o-fg: #a9b1d6;
+                --o-fg-bright: #c0caf5;
+                --o-accent: #7aa2f7;
+                --o-red: #f7768e;
+                --o-yellow: #e0af68;
+                --o-orange: #eb927b;
+                --o-green: #9ece6a;
+                --o-magenta: #ad8ee6;
+                --bg: var(--o-bg);
+                --card: color-mix(in srgb, var(--o-fg) 4%, var(--bg));
+                --card-2: color-mix(in srgb, var(--o-fg) 8%, var(--bg));
+                --hover: color-mix(in srgb, var(--o-fg) 7%, transparent);
+                --line: color-mix(in srgb, var(--o-fg) 13%, var(--bg));
+                --hair: color-mix(in srgb, var(--o-fg) 10%, transparent);
+                --hair-2: color-mix(in srgb, var(--o-fg) 17%, transparent);
+                --text: var(--o-fg-bright);
+                --body: var(--o-fg);
+                --muted: color-mix(in oklab, var(--body) 76%, var(--bg));
+                --faint: color-mix(in oklab, var(--body) 42%, var(--bg));
+                --accent: var(--o-accent);
+                --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+                --accent-line: color-mix(in srgb, var(--accent) 50%, transparent);
+                --accent-ink: var(--bg);
+                --ok: var(--o-green);
+                --ok-soft: color-mix(in srgb, var(--o-green) 14%, transparent);
+                --warn: var(--o-yellow);
+                --err: var(--o-red);
+                --err-soft: color-mix(in srgb, var(--o-red) 14%, transparent);
+                --brand: var(--o-orange);
+                --r-mark: 3px;
+                --r-tag: 5px;
+                --r-row: 9px;
+                --r-control: 10px;
+                --r-card: 12px;
+                --r-window: 14px;
+                --r-pill: 999px;
+                --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+                --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+                --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            html,
+            body {
+                margin: 0;
+                height: 100%;
+                background: var(--o-bg-darker);
+                color: var(--text);
+                font-family: var(--sans);
+                -webkit-font-smoothing: antialiased;
+            }
+
+            button {
+                font: inherit;
+                color: inherit;
+                background: none;
+                border: 0;
+                padding: 0;
+                cursor: pointer;
+            }
+
+            .window {
+                height: 100%;
+                display: flex;
+                padding: 8px;
+                gap: 8px;
+                background:
+                    radial-gradient(
+                        1200px 700px at 18% -10%,
+                        color-mix(in srgb, var(--accent) 8%, transparent),
+                        transparent 60%
+                    ),
+                    var(--o-bg-darker);
+            }
+
+            /* ── Sidebar ─────────────────────────────────────────────── */
+
+            .sidebar {
+                flex: none;
+                width: 292px;
+                display: flex;
+                min-height: 0;
+                border: 1px solid var(--hair-2);
+                border-radius: var(--r-window);
+                background: var(--bg);
+                overflow: hidden;
+                box-shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.6);
+            }
+
+            .rail {
+                flex: none;
+                width: 56px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 6px;
+                padding: 12px 0;
+                border-right: 1px solid var(--hair);
+                overflow: hidden;
+            }
+
+            .rail-brand,
+            .rail-button {
+                position: relative;
+                flex: none;
+                width: 36px;
+                height: 36px;
+                display: grid;
+                place-items: center;
+                border-radius: var(--r-control);
+                color: var(--muted);
+                transition:
+                    background-color 140ms var(--ease),
+                    color 140ms var(--ease);
+            }
+
+            .rail-brand {
+                font:
+                    22px/1 Georgia,
+                    serif;
+                color: var(--brand);
+                margin-bottom: 6px;
+            }
+
+            .rail-button:hover {
+                background: var(--hover);
+                color: var(--text);
+            }
+            .rail-button.on {
+                color: var(--text);
+                background: var(--card-2);
+            }
+            .rail-button.open {
+                color: var(--accent);
+                background: var(--accent-soft);
+            }
+
+            .rail-button svg {
+                width: 19px;
+                height: 19px;
+            }
+
+            .rail-fill {
+                flex: 1;
+            }
+
+            .rail-count {
+                position: absolute;
+                top: 1px;
+                right: 0;
+                min-width: 15px;
+                height: 15px;
+                padding: 0 4px;
+                display: grid;
+                place-items: center;
+                border-radius: var(--r-pill);
+                background: var(--accent);
+                color: var(--accent-ink);
+                box-shadow: 0 0 0 2px var(--bg);
+                font: 600 9.5px/1 var(--mono);
+            }
+
+            .rail-avatar {
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                display: grid;
+                place-items: center;
+                background: linear-gradient(150deg, var(--o-magenta), var(--accent));
+                color: #fff;
+                font-size: 11px;
+                font-weight: 650;
+            }
+
+            .sessions {
+                flex: 1;
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
+                padding: 12px 10px 10px;
+                gap: 4px;
+                overflow: hidden;
+            }
+
+            .sessions-head {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 2px 6px 10px;
+            }
+
+            .sessions-head strong {
+                flex: 1;
+                font-size: 13px;
+                font-weight: 600;
+                letter-spacing: 0.01em;
+            }
+
+            .sessions-head .new {
+                width: 26px;
+                height: 26px;
+                display: grid;
+                place-items: center;
+                border-radius: 8px;
+                color: var(--muted);
+            }
+
+            .sessions-head .new:hover {
+                background: var(--hover);
+                color: var(--text);
+            }
+            .sessions-head svg {
+                width: 15px;
+                height: 15px;
+            }
+
+            .group-label {
+                padding: 9px 7px 5px;
+                font-size: 10.5px;
+                font-weight: 600;
+                letter-spacing: 0.075em;
+                text-transform: uppercase;
+                color: var(--faint);
+            }
+
+            .session {
+                display: flex;
+                align-items: center;
+                gap: 9px;
+                min-height: 32px;
+                padding: 5px 8px;
+                border-radius: 8px;
+                font-size: 12.5px;
+                color: var(--body);
+                white-space: nowrap;
+                overflow: hidden;
+            }
+
+            .session:hover {
+                background: var(--hover);
+            }
+            .session.active {
+                background: var(--card-2);
+                color: var(--text);
+            }
+
+            .session-dot {
+                flex: none;
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: var(--dot, var(--accent));
+            }
+
+            .session span:last-child {
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .session .spacer {
+                flex: 1;
+            }
+            .session .count {
+                font: 10.5px var(--mono);
+                color: var(--faint);
+            }
+
+            /* ── The panel ───────────────────────────────────────────── */
+
+            .pane {
+                flex: 1;
+                min-width: 0;
+                min-height: 0;
+                display: flex;
+                border: 1px solid var(--hair-2);
+                border-radius: var(--r-window);
+                background: var(--bg);
+                overflow: hidden;
+                box-shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.6);
+            }
+
+            .git {
+                flex: 1;
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
+                background: var(--bg);
+                animation: fade 220ms var(--ease);
+            }
+
+            @keyframes fade {
+                from {
+                    opacity: 0;
+                }
+            }
+
+            .git-head {
+                flex: none;
+                min-height: 62px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 0 16px 0 22px;
+                border-bottom: 1px solid var(--hair);
+            }
+
+            .git-mark {
+                flex: none;
+                width: 34px;
+                height: 34px;
+                display: grid;
+                place-items: center;
+                border-radius: var(--r-control);
+                background: var(--accent-soft);
+                color: var(--accent);
+            }
+
+            .git-mark svg {
+                width: 19px;
+                height: 19px;
+            }
+
+            .git-title {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .git-title h1 {
+                margin: 0;
+                font-size: 16px;
+                font-weight: 600;
+                line-height: 1.3;
+                color: var(--text);
+            }
+
+            .git-sub {
+                margin-top: 1px;
+                font-size: 12px;
+                color: var(--muted);
+            }
+
+            .git-sub b {
+                font-weight: 500;
+                color: var(--body);
+            }
+
+            .quiet-button,
+            .icon-button {
+                flex: none;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                height: 32px;
+                border-radius: var(--r-control);
+                border: 1px solid var(--hair);
+                color: var(--muted);
+                background: transparent;
+                transition:
+                    background-color 140ms var(--ease),
+                    color 140ms var(--ease),
+                    border-color 140ms var(--ease);
+            }
+
+            .quiet-button {
+                padding: 0 11px;
+                font-size: 12px;
+                font-weight: 500;
+            }
+            .icon-button {
+                width: 32px;
+            }
+            .quiet-button:hover,
+            .icon-button:hover {
+                background: var(--card);
+                color: var(--text);
+                border-color: var(--hair-2);
+            }
+            .quiet-button svg {
+                width: 14px;
+                height: 14px;
+            }
+            .icon-button svg {
+                width: 16px;
+                height: 16px;
+            }
+
+            .git-tools {
+                flex: none;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 14px 22px 0;
+                flex-wrap: wrap;
+            }
+
+            .filter {
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                height: 29px;
+                padding: 0 11px;
+                border-radius: var(--r-pill);
+                border: 1px solid var(--hair);
+                font-size: 12px;
+                font-weight: 500;
+                color: var(--body);
+                transition:
+                    background-color 140ms var(--ease),
+                    border-color 140ms var(--ease);
+            }
+
+            .filter:hover {
+                background: var(--card-2);
+                border-color: var(--hair-2);
+            }
+            .filter.on {
+                background: var(--card-2);
+                border-color: var(--hair-2);
+                color: var(--text);
+            }
+
+            .filter .n {
+                font: 400 10.5px var(--mono);
+                color: var(--faint);
+            }
+
+            .filter-dot {
+                width: 7px;
+                height: 7px;
+                border-radius: 2px;
+                background: var(--tone, var(--muted));
+            }
+
+            .git-tools .spacer {
+                flex: 1;
+            }
+
+            .checked {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 11.5px;
+                color: var(--faint);
+                white-space: nowrap;
+            }
+
+            .checked .pulse {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: var(--ok);
+                box-shadow: 0 0 0 3px var(--ok-soft);
+            }
+
+            .folders {
+                flex: 1;
+                min-height: 0;
+                overflow-y: auto;
+                padding: 14px 22px 22px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                scrollbar-width: thin;
+                scrollbar-color: var(--hair-2) transparent;
+            }
+
+            .folder {
+                flex: none;
+                border: 1px solid var(--hair);
+                border-radius: var(--r-card);
+                background: var(--card);
+                overflow: hidden;
+                transition:
+                    border-color 140ms var(--ease),
+                    background-color 140ms var(--ease);
+            }
+
+            .folder:hover {
+                border-color: var(--hair-2);
+            }
+            .folder.open {
+                background: var(--card-2);
+                border-color: var(--hair-2);
+            }
+            .folder.changed {
+                border-left: 2px solid var(--warn);
+            }
+            .folder.missing {
+                border-left: 2px solid var(--faint);
+            }
+
+            .folder-head {
+                width: 100%;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 11px 13px 11px 10px;
+                text-align: left;
+                min-height: 58px;
+                cursor: pointer;
+                user-select: none;
+            }
+
+            .folder-head:focus-visible {
+                outline: 2px solid var(--accent);
+                outline-offset: -2px;
+            }
+
+            .chev {
+                flex: none;
+                width: 18px;
+                height: 18px;
+                display: grid;
+                place-items: center;
+                color: var(--faint);
+                transition:
+                    transform 160ms var(--ease),
+                    color 140ms var(--ease);
+            }
+
+            .chev svg {
+                width: 12px;
+                height: 12px;
+            }
+            .folder.open .chev {
+                transform: rotate(90deg);
+                color: var(--muted);
+            }
+
+            .folder-mark {
+                flex: none;
+                width: 9px;
+                height: 9px;
+                border-radius: 3px;
+                background: var(--dot, var(--accent));
+                box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot, var(--accent)) 13%, transparent);
+            }
+
+            .folder-name {
+                display: flex;
+                align-items: baseline;
+                gap: 8px;
+                min-width: 0;
+                flex: none;
+                max-width: 34%;
+            }
+
+            .folder-name strong {
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--text);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-family: var(--mono);
+                letter-spacing: -0.01em;
+            }
+
+            .folder-path {
+                font: 10.5px var(--mono);
+                color: var(--faint);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .badge {
+                flex: none;
+                display: inline-flex;
+                align-items: center;
+                height: 19px;
+                padding: 0 7px;
+                border-radius: var(--r-tag);
+                background: color-mix(in srgb, var(--body) 7%, transparent);
+                color: var(--muted);
+                font-size: 10.5px;
+                font-weight: 500;
+                white-space: nowrap;
+            }
+
+            .badge.wt {
+                background: var(--accent-soft);
+                color: var(--accent);
+                font-family: var(--mono);
+                font-size: 9.5px;
+            }
+
+            .gitline {
+                flex: 1;
+                min-width: 0;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                overflow: hidden;
+            }
+
+            .branch {
+                flex: none;
+                max-width: 160px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                padding: 2px 7px;
+                border-radius: var(--r-tag);
+                background: var(--accent-soft);
+                color: var(--accent);
+                font: 500 11px var(--mono);
+            }
+
+            .branch.detached {
+                background: var(--err-soft);
+                color: var(--err);
+            }
+            .branch.plain {
+                background: color-mix(in srgb, var(--body) 8%, transparent);
+                color: var(--muted);
+            }
+
+            .hash {
+                flex: none;
+                font: 500 11px var(--mono);
+                color: var(--faint);
+                letter-spacing: 0.01em;
+            }
+
+            .commit-msg {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-size: 12.25px;
+                color: var(--muted);
+            }
+
+            .ahead {
+                flex: none;
+                font: 10px var(--mono);
+                color: var(--muted);
+                white-space: nowrap;
+            }
+
+            .delta {
+                flex: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                margin-left: auto;
+                padding-left: 10px;
+                font: 11px var(--mono);
+                white-space: nowrap;
+            }
+
+            .delta .add {
+                color: var(--ok);
+            }
+            .delta .del {
+                color: var(--err);
+            }
+            .delta .files {
+                color: var(--muted);
+            }
+            .delta .clean {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                color: var(--ok);
+            }
+            .delta .clean svg {
+                width: 12px;
+                height: 12px;
+            }
+
+            .commit-button {
+                flex: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                height: 26px;
+                margin-left: auto;
+                padding: 0 9px 0 8px;
+                border-radius: 8px;
+                border: 1px solid var(--accent-line);
+                background: var(--accent-soft);
+                color: var(--accent);
+                font-size: 11px;
+                font-weight: 600;
+                white-space: nowrap;
+                transition:
+                    background-color 140ms var(--ease),
+                    color 140ms var(--ease),
+                    border-color 140ms var(--ease);
+            }
+
+            @media (hover: hover) {
+                .commit-button:hover {
+                    background: color-mix(in srgb, var(--accent) 22%, transparent);
+                    border-color: var(--accent);
+                    color: var(--text);
+                }
+            }
+
+            .commit-button:active {
+                transform: translateY(0.5px);
+            }
+            .commit-button svg {
+                width: 13px;
+                height: 13px;
+            }
+            .commit-button.starting {
+                color: var(--muted);
+                border-color: var(--hair);
+                background: var(--card);
+                pointer-events: none;
+            }
+
+            .commit-button.starting svg {
+                animation: spin 0.8s linear infinite;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .toast {
+                position: fixed;
+                right: 18px;
+                bottom: 18px;
+                z-index: 20;
+                display: flex;
+                align-items: flex-start;
+                gap: 10px;
+                width: min(360px, calc(100vw - 36px));
+                padding: 11px 12px;
+                border: 1px solid var(--hair-2);
+                border-radius: var(--r-card);
+                background: color-mix(in srgb, var(--o-bg-light) 92%, transparent);
+                box-shadow: var(
+                    --pop,
+                    0 24px 60px -16px rgba(0, 0, 0, 0.55),
+                    0 0 0 1px var(--hair-2)
+                );
+                backdrop-filter: blur(12px);
+                opacity: 0;
+                transform: translateY(8px);
+                pointer-events: none;
+                transition:
+                    opacity 180ms var(--ease),
+                    transform 180ms var(--ease);
+            }
+
+            .toast.show {
+                opacity: 1;
+                transform: none;
+                pointer-events: auto;
+            }
+
+            .toast-mark {
+                flex: none;
+                width: 26px;
+                height: 26px;
+                display: grid;
+                place-items: center;
+                border-radius: var(--r-control);
+                background: var(--ok-soft);
+                color: var(--ok);
+            }
+
+            .toast-mark svg {
+                width: 15px;
+                height: 15px;
+            }
+            .toast-body {
+                flex: 1;
+                min-width: 0;
+                padding-top: 1px;
+            }
+            .toast-body strong {
+                display: block;
+                font-size: 12.5px;
+                font-weight: 600;
+                color: var(--text);
+            }
+            .toast-body span {
+                display: block;
+                margin-top: 2px;
+                font-size: 11.5px;
+                line-height: 1.4;
+                color: var(--muted);
+            }
+            .toast-open {
+                align-self: center;
+                flex: none;
+                height: 26px;
+                padding: 0 9px;
+                border-radius: 7px;
+                border: 1px solid var(--hair-2);
+                background: var(--card-2);
+                color: var(--text);
+                font-size: 11px;
+                font-weight: 500;
+            }
+            .toast-open:hover {
+                background: var(--hover);
+            }
+            .toast-close {
+                flex: none;
+                width: 22px;
+                height: 22px;
+                display: grid;
+                place-items: center;
+                border-radius: 6px;
+                color: var(--faint);
+            }
+            .toast-close:hover {
+                background: var(--hover);
+                color: var(--text);
+            }
+            .toast-close svg {
+                width: 13px;
+                height: 13px;
+            }
+
+            .folder-body {
+                display: none;
+                border-top: 1px solid var(--hair);
+                padding: 13px 16px 15px 38px;
+                gap: 26px;
+            }
+
+            .folder.open .folder-body {
+                display: flex;
+            }
+
+            .section {
+                flex: 1;
+                min-width: 0;
+            }
+            .section.changes {
+                flex: 0 0 42%;
+            }
+
+            .section-label {
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                margin-bottom: 8px;
+                font-size: 10px;
+                font-weight: 600;
+                letter-spacing: 0.075em;
+                text-transform: uppercase;
+                color: var(--faint);
+            }
+
+            .section-label .count {
+                color: var(--muted);
+                letter-spacing: 0;
+            }
+
+            .commits {
+                display: flex;
+                flex-direction: column;
+                gap: 1px;
+            }
+
+            .commit {
+                display: flex;
+                align-items: center;
+                gap: 9px;
+                min-height: 27px;
+                padding: 2px 6px;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+
+            .commit:hover {
+                background: var(--hover);
+            }
+            .commit .hash {
+                color: var(--muted);
+            }
+            .commit .msg {
+                flex: 1;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                color: var(--body);
+            }
+            .commit .when {
+                flex: none;
+                font: 10.5px var(--mono);
+                color: var(--faint);
+            }
+            .commit .author {
+                flex: none;
+                width: 17px;
+                height: 17px;
+                border-radius: 50%;
+                display: grid;
+                place-items: center;
+                background: var(--card-2);
+                color: var(--muted);
+                font-size: 8px;
+                font-weight: 600;
+            }
+
+            .file {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                min-height: 26px;
+                padding: 2px 6px;
+                border-radius: 6px;
+                font: 11px var(--mono);
+            }
+
+            .file:hover {
+                background: var(--hover);
+            }
+
+            .file-kind {
+                flex: none;
+                width: 15px;
+                font: 600 9.5px/15px var(--mono);
+                text-align: center;
+                border-radius: var(--r-mark);
+                background: color-mix(in srgb, var(--body) 8%, transparent);
+                color: var(--muted);
+            }
+
+            .file-kind.modified {
+                color: var(--warn);
+                background: color-mix(in srgb, var(--warn) 12%, transparent);
+            }
+            .file-kind.added {
+                color: var(--ok);
+                background: color-mix(in srgb, var(--ok) 12%, transparent);
+            }
+            .file-kind.new {
+                color: var(--accent);
+                background: var(--accent-soft);
+            }
+
+            .file .path {
+                flex: 1;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                color: var(--body);
+            }
+
+            .file .num {
+                flex: none;
+                font-size: 10.5px;
+                color: var(--faint);
+            }
+            .file .num.add {
+                color: var(--ok);
+            }
+            .file .num.del {
+                color: var(--err);
+            }
+
+            .missing-line {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 0 0 0 2px;
+                font-size: 11.5px;
+                color: var(--faint);
+            }
+
+            .missing-line a {
+                color: var(--accent);
+                text-decoration: none;
+            }
+
+            .git-foot {
+                flex: none;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 9px 22px 11px;
+                border-top: 1px solid var(--hair);
+                font-size: 11px;
+                color: var(--faint);
+            }
+
+            .git-foot .spacer {
+                flex: 1;
+            }
+            .git-foot kbd {
+                padding: 1px 5px;
+                border: 1px solid var(--hair-2);
+                border-radius: 4px;
+                font: 9.5px var(--mono);
+                color: var(--muted);
+                background: var(--card);
+            }
+
+            .mock-pill {
+                flex: none;
+                height: 20px;
+                padding: 0 7px;
+                display: inline-flex;
+                align-items: center;
+                border-radius: var(--r-pill);
+                border: 1px solid color-mix(in srgb, var(--o-magenta) 40%, transparent);
+                background: color-mix(in srgb, var(--o-magenta) 12%, transparent);
+                color: var(--o-magenta);
+                font: 500 9.5px var(--mono);
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+            }
+
+            @media (max-width: 940px) {
+                .sidebar {
+                    width: 248px;
+                }
+                .folder-path {
+                    display: none;
+                }
+                .folder-name {
+                    max-width: 42%;
+                }
+                .folder-body {
+                    flex-direction: column;
+                    gap: 16px;
+                }
+                .section.changes {
+                    flex: none;
+                }
+            }
+
+            @media (max-width: 720px) {
+                .window {
+                    padding: 0;
+                    gap: 0;
+                }
+                .sidebar {
+                    display: none;
+                }
+                .pane {
+                    border: 0;
+                    border-radius: 0;
+                }
+                .git-head {
+                    padding: 8px 12px 0 14px;
+                    min-height: 58px;
+                }
+                .git-mark {
+                    width: 30px;
+                    height: 30px;
+                }
+                .git-tools,
+                .folders,
+                .git-foot {
+                    padding-left: 14px;
+                    padding-right: 14px;
+                }
+                .commit-msg {
+                    display: none;
+                }
+                .delta {
+                    margin-left: 0;
+                }
+                .gitline {
+                    gap: 6px;
+                }
+                .folder-name {
+                    flex: 1;
+                    max-width: none;
+                }
+                .quiet-button span {
+                    display: none;
+                }
+                .quiet-button {
+                    width: 32px;
+                    padding: 0;
+                }
+                .folder-head {
+                    flex-wrap: wrap;
+                    row-gap: 7px;
+                }
+                .delta {
+                    order: 9;
+                    margin-left: auto;
+                    padding-left: 0;
+                }
+                .gitline {
+                    order: 10;
+                    flex-basis: 100%;
+                    padding-left: 37px;
+                }
+                .commit-button {
+                    height: 24px;
+                    padding: 0 8px;
+                    font-size: 10.5px;
+                }
+                .commit-button svg {
+                    width: 12px;
+                    height: 12px;
+                }
+                .foot-more,
+                .keys-hint {
+                    display: none !important;
+                }
+                .git-foot {
+                    gap: 6px;
+                    font-size: 10px;
+                }
+                .folder-body {
+                    padding-left: 16px;
+                }
+                .mock-tag {
+                    bottom: 8px;
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                *,
+                *::before,
+                *::after {
+                    animation-duration: 0.001ms !important;
+                    transition-duration: 0.001ms !important;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="window">
+            <aside class="sidebar">
+                <nav class="rail" aria-label="Sessions and tools">
+                    <button class="rail-brand" title="Home">π</button>
+                    <span style="height: 6px"></span>
+                    <button class="rail-button on" title="Sessions" aria-pressed="true">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z" />
+                        </svg>
+                    </button>
+                    <span class="rail-fill"></span>
+                    <button class="rail-button open" title="Git status (Alt+G)" aria-pressed="true">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <circle cx="6" cy="5" r="2.2" />
+                            <circle cx="6" cy="19" r="2.2" />
+                            <circle cx="18" cy="5" r="2.2" />
+                            <path d="M6 7.2v9.6M18 7.2v2.3a4 4 0 01-4 4H6" />
+                        </svg>
+                        <span class="rail-count">3</span>
+                    </button>
+                    <button class="rail-button" title="Running now">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M3 12h4l2-6 4 12 2-6h6" />
+                        </svg>
+                    </button>
+                    <button class="rail-button" title="Subagents in every session">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M6 3v12M18 9a3 3 0 100-6 3 3 0 000 6zM6 21a3 3 0 100-6 3 3 0 000 6zM18 9a9 9 0 01-9 9"
+                            />
+                        </svg>
+                    </button>
+                    <button class="rail-button" title="People">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M16 20v-1a4 4 0 00-4-4H6a4 4 0 00-4 4v1M9 11a4 4 0 100-8 4 4 0 000 8zM22 20v-1a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8"
+                            />
+                        </svg>
+                    </button>
+                    <button class="rail-button" title="Theme, tiling, motion">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M12 3a9 9 0 100 18c1 0 1.5-.8 1.5-1.5 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.8.7-1.5 1.5-1.5H16a5 5 0 005-5c0-4.4-4-7.8-9-7.8zM7.5 12.5h.01M9.5 8h.01M14.5 8h.01M17 11.5h.01"
+                            />
+                        </svg>
+                    </button>
+                    <button
+                        class="rail-button"
+                        title="You"
+                        style="margin-top: 4px; border-radius: 50%"
+                    >
+                        <span class="rail-avatar">S</span>
+                    </button>
+                </nav>
+                <div class="sessions">
+                    <div class="sessions-head">
+                        <strong>Sessions</strong>
+                        <button class="new" title="New session" aria-label="New session">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                            >
+                                <path d="M12 5v14M5 12h14" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="group-label">Today</div>
+                    <div class="session active">
+                        <span class="session-dot" style="--dot: #eb927b"></span
+                        ><span>Git Status Rail Panel</span>
+                    </div>
+                    <div class="session">
+                        <span class="session-dot" style="--dot: #7aa2f7"></span
+                        ><span>Fix the branch picker</span><span class="spacer"></span
+                        ><span class="count">2</span>
+                    </div>
+                    <div class="session">
+                        <span class="session-dot" style="--dot: #9ece6a"></span
+                        ><span>Tarot deck back artwork</span>
+                    </div>
+                    <div class="session">
+                        <span class="session-dot" style="--dot: #e0af68"></span
+                        ><span>Window shade on KWin 6.8</span>
+                    </div>
+                    <div class="group-label">Yesterday</div>
+                    <div class="session">
+                        <span class="session-dot" style="--dot: #ad8ee6"></span
+                        ><span>Usage monitor merge</span>
+                    </div>
+                    <div class="session">
+                        <span class="session-dot" style="--dot: #449dab"></span
+                        ><span>Galaxian wave clear</span>
+                    </div>
+                    <div class="session">
+                        <span class="session-dot" style="--dot: #f7768e"></span
+                        ><span>Scheduled messages sheet</span>
+                    </div>
+                    <div class="session">
+                        <span class="session-dot" style="--dot: #7aa2f7"></span
+                        ><span>Spotify lyrics cache</span>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="pane">
+                <section class="git" aria-label="Git status in every session">
+                    <header class="git-head">
+                        <span class="git-mark">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.7"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <circle cx="6" cy="5" r="2.2" />
+                                <circle cx="6" cy="19" r="2.2" />
+                                <circle cx="18" cy="5" r="2.2" />
+                                <path d="M6 7.2v9.6M18 7.2v2.3a4 4 0 01-4 4H6" />
+                            </svg>
+                        </span>
+                        <div class="git-title">
+                            <h1>Git status</h1>
+                            <div class="git-sub">
+                                <b>8 folders</b> · <b>3 with changes</b> · 81 sessions
+                            </div>
+                        </div>
+                        <span class="mock-pill">mockup</span>
+                        <button class="quiet-button" id="refresh">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="M20 12a8 8 0 11-2.3-5.7M20 4v5h-5" />
+                            </svg>
+                            <span>Refresh</span>
+                        </button>
+                        <button
+                            class="icon-button"
+                            title="Back to the conversation (Esc)"
+                            aria-label="Close"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                            >
+                                <path d="M6 6l12 12M18 6L6 18" />
+                            </svg>
+                        </button>
+                    </header>
+
+                    <div class="git-tools" role="group" aria-label="Show only">
+                        <button class="filter on" data-filter="all">
+                            All <span class="n">8</span>
+                        </button>
+                        <button class="filter" data-filter="changed">
+                            <span class="filter-dot" style="--tone: var(--warn)"></span>Changed
+                            <span class="n">3</span>
+                        </button>
+                        <button class="filter" data-filter="clean">
+                            <span class="filter-dot" style="--tone: var(--ok)"></span>Clean
+                            <span class="n">4</span>
+                        </button>
+                        <button class="filter" data-filter="none">
+                            <span class="filter-dot" style="--tone: var(--faint)"></span>No repo
+                            <span class="n">1</span>
+                        </button>
+                        <span class="spacer"></span>
+                        <span class="checked"
+                            ><span class="pulse"></span
+                            ><span id="checked">checked just now</span></span
+                        >
+                    </div>
+
+                    <div class="folders">
+                        <article class="folder open changed" data-state="changed">
+                            <div
+                                class="folder-head"
+                                role="button"
+                                tabindex="0"
+                                aria-expanded="true"
+                            >
+                                <span class="chev"
+                                    ><svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2.2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M9 6l6 6-6 6" /></svg
+                                ></span>
+                                <span class="folder-mark" style="--dot: #eb927b"></span>
+                                <span class="folder-name"
+                                    ><strong>pi-pocket</strong
+                                    ><span class="folder-path">~/js/pi-pocket</span></span
+                                >
+                                <span class="badge">8 sessions</span>
+                                <div class="gitline">
+                                    <span class="branch">sum_edit</span>
+                                    <span class="hash">2744da7</span>
+                                    <span class="commit-msg"
+                                        >All scheduled messages: wider sheet, tighter rows</span
+                                    >
+                                    <span class="ahead">↑2</span>
+                                    <button
+                                        class="commit-button"
+                                        title="Start a new session in pi-pocket and ask Pi to commit these changes"
+                                    >
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="1.8"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <circle cx="12" cy="12" r="8.5" />
+                                            <path d="M8.5 12l2.4 2.4 4.6-5" /></svg
+                                        ><span>Commit</span>
+                                    </button>
+                                </div>
+                                <span class="delta"
+                                    ><span class="add">+42</span><span class="del">−7</span
+                                    ><span class="files">3 files</span></span
+                                >
+                            </div>
+                            <div class="folder-body">
+                                <div class="section">
+                                    <div class="section-label">Last 3 commits</div>
+                                    <div class="commits">
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">2744da7</span
+                                            ><span class="msg"
+                                                >All scheduled messages: wider sheet, tighter
+                                                rows</span
+                                            ><span class="when">36m</span>
+                                        </div>
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">ab8c544</span
+                                            ><span class="msg"
+                                                >Composer: name a model by its provider and full
+                                                id</span
+                                            ><span class="when">2h</span>
+                                        </div>
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">7b10db9</span
+                                            ><span class="msg"
+                                                >Add an all-sessions scheduled messages sheet</span
+                                            ><span class="when">2h</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="section changes">
+                                    <div class="section-label">
+                                        Working tree <span class="count">3 files</span>
+                                    </div>
+                                    <div class="commits">
+                                        <div class="file">
+                                            <span class="file-kind new">A</span
+                                            ><span class="path">web/git-status.css</span
+                                            ><span class="num add">+38</span
+                                            ><span class="num del">−0</span>
+                                        </div>
+                                        <div class="file">
+                                            <span class="file-kind modified">M</span
+                                            ><span class="path">web/sessions.js</span
+                                            ><span class="num add">+3</span
+                                            ><span class="num del">−5</span>
+                                        </div>
+                                        <div class="file">
+                                            <span class="file-kind modified">M</span
+                                            ><span class="path">src/server/git-status.ts</span
+                                            ><span class="num add">+1</span
+                                            ><span class="num del">−2</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="folder changed" data-state="changed">
+                            <div
+                                class="folder-head"
+                                role="button"
+                                tabindex="0"
+                                aria-expanded="false"
+                            >
+                                <span class="chev"
+                                    ><svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2.2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M9 6l6 6-6 6" /></svg
+                                ></span>
+                                <span class="folder-mark" style="--dot: #9ece6a"></span>
+                                <span class="folder-name"
+                                    ><strong>tarotStudio</strong
+                                    ><span class="folder-path">~/js/tarotStudio</span></span
+                                >
+                                <span class="badge">12 sessions</span>
+                                <div class="gitline">
+                                    <span class="branch plain">master</span>
+                                    <span class="hash">3789010</span>
+                                    <span class="commit-msg"
+                                        >feat: the deck's own back, and cards that keep their
+                                        corners</span
+                                    >
+                                    <button
+                                        class="commit-button"
+                                        title="Start a new session in tarotStudio and ask Pi to commit these changes"
+                                    >
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="1.8"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <circle cx="12" cy="12" r="8.5" />
+                                            <path d="M8.5 12l2.4 2.4 4.6-5" /></svg
+                                        ><span>Commit</span>
+                                    </button>
+                                </div>
+                                <span class="delta"
+                                    ><span class="add">+12</span><span class="del">−3</span
+                                    ><span class="files">1 file</span></span
+                                >
+                            </div>
+                            <div class="folder-body">
+                                <div class="section">
+                                    <div class="section-label">Last 3 commits</div>
+                                    <div class="commits">
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">3789010</span
+                                            ><span class="msg"
+                                                >feat: the deck's own back, and cards that keep
+                                                their corners</span
+                                            ><span class="when">2d</span>
+                                        </div>
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">052c6d8</span
+                                            ><span class="msg"
+                                                >feat: a one-file AppImage, and a binary that
+                                                carries its own assets</span
+                                            ><span class="when">3d</span>
+                                        </div>
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">2063e23</span
+                                            ><span class="msg">refactor: one page, one module</span
+                                            ><span class="when">3d</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="section changes">
+                                    <div class="section-label">
+                                        Working tree <span class="count">1 file</span>
+                                    </div>
+                                    <div class="commits">
+                                        <div class="file">
+                                            <span class="file-kind modified">M</span
+                                            ><span class="path">ui/card.css</span
+                                            ><span class="num add">+12</span
+                                            ><span class="num del">−3</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="folder changed" data-state="changed">
+                            <div
+                                class="folder-head"
+                                role="button"
+                                tabindex="0"
+                                aria-expanded="false"
+                            >
+                                <span class="chev"
+                                    ><svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2.2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M9 6l6 6-6 6" /></svg
+                                ></span>
+                                <span class="folder-mark" style="--dot: #e0af68"></span>
+                                <span class="folder-name"
+                                    ><strong>Todo</strong
+                                    ><span class="folder-path">~/js/Todo</span></span
+                                >
+                                <span class="badge">5 sessions</span>
+                                <div class="gitline">
+                                    <span class="branch">master</span>
+                                    <span class="hash">36b6622</span>
+                                    <span class="commit-msg"
+                                        >v0.4.121 - add an Add item link to empty group's drop
+                                        area</span
+                                    >
+                                    <span class="ahead">↑1</span>
+                                    <button
+                                        class="commit-button"
+                                        title="Start a new session in Todo and ask Pi to commit these changes"
+                                    >
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="1.8"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <circle cx="12" cy="12" r="8.5" />
+                                            <path d="M8.5 12l2.4 2.4 4.6-5" /></svg
+                                        ><span>Commit</span>
+                                    </button>
+                                </div>
+                                <span class="delta"
+                                    ><span class="add">+6</span><span class="del">−1</span
+                                    ><span class="files">1 file</span></span
+                                >
+                            </div>
+                            <div class="folder-body">
+                                <div class="section">
+                                    <div class="section-label">Last 3 commits</div>
+                                    <div class="commits">
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">36b6622</span
+                                            ><span class="msg"
+                                                >v0.4.121 - add an Add item link to empty group's
+                                                drop area</span
+                                            ><span class="when">23h</span>
+                                        </div>
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">bed9747</span
+                                            ><span class="msg"
+                                                >v0.4.120 - include custom group headers in
+                                                search</span
+                                            ><span class="when">27h</span>
+                                        </div>
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">7520237</span
+                                            ><span class="msg"
+                                                >v0.4.119 - keep the shade anchor from dying on a
+                                                window being torn down</span
+                                            ><span class="when">3d</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="section changes">
+                                    <div class="section-label">
+                                        Working tree <span class="count">1 file</span>
+                                    </div>
+                                    <div class="commits">
+                                        <div class="file">
+                                            <span class="file-kind modified">M</span
+                                            ><span class="path">src/TodoApp.tsx</span
+                                            ><span class="num add">+6</span
+                                            ><span class="num del">−1</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="folder" data-state="clean">
+                            <div
+                                class="folder-head"
+                                role="button"
+                                tabindex="0"
+                                aria-expanded="false"
+                            >
+                                <span class="chev"
+                                    ><svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2.2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M9 6l6 6-6 6" /></svg
+                                ></span>
+                                <span class="folder-mark" style="--dot: #7aa2f7"></span>
+                                <span class="folder-name"
+                                    ><strong>agentStatus</strong
+                                    ><span class="folder-path">~/js/agentStatus</span></span
+                                >
+                                <span class="badge">12 sessions</span>
+                                <div class="gitline">
+                                    <span class="branch">master</span>
+                                    <span class="hash">2a0d7e5</span>
+                                    <span class="commit-msg"
+                                        >fix: read the usage keys Pi already stores, and survive a
+                                        provider with no rows</span
+                                    >
+                                </div>
+                                <span class="delta"
+                                    ><span class="clean"
+                                        ><svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2.4"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path d="M5 12l5 5L20 7" /></svg
+                                        >Clean</span
+                                    ></span
+                                >
+                            </div>
+                            <div class="folder-body">
+                                <div class="section">
+                                    <div class="section-label">Last 3 commits</div>
+                                    <div class="commits">
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">2a0d7e5</span
+                                            ><span class="msg"
+                                                >fix: read the usage keys Pi already stores</span
+                                            ><span class="when">27h</span>
+                                        </div>
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">5cd1fce</span
+                                            ><span class="msg"
+                                                >feat: stamp the build's version in the settings
+                                                view</span
+                                            ><span class="when">2d</span>
+                                        </div>
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">9d3afbb</span
+                                            ><span class="msg"
+                                                >feat: mark a folder with uncommitted changes in the
+                                                combo</span
+                                            ><span class="when">2d</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="section changes">
+                                    <div class="section-label">Working tree</div>
+                                    <div class="missing-line">
+                                        <span class="clean" style="color: var(--ok)"
+                                            >Nothing uncommitted</span
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="folder" data-state="clean">
+                            <div
+                                class="folder-head"
+                                role="button"
+                                tabindex="0"
+                                aria-expanded="false"
+                            >
+                                <span class="chev"
+                                    ><svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2.2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M9 6l6 6-6 6" /></svg
+                                ></span>
+                                <span class="folder-mark" style="--dot: #449dab"></span>
+                                <span class="folder-name"
+                                    ><strong>QuickChat</strong
+                                    ><span class="folder-path">~/js/QuickChat</span></span
+                                >
+                                <span class="badge">3 sessions</span>
+                                <div class="gitline">
+                                    <span class="branch">master</span>
+                                    <span class="hash">5339299</span>
+                                    <span class="commit-msg"
+                                        >Hold the window's top-left across the shade on KWin 6.8
+                                        (v0.0.059)</span
+                                    >
+                                </div>
+                                <span class="delta"
+                                    ><span class="clean"
+                                        ><svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2.4"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path d="M5 12l5 5L20 7" /></svg
+                                        >Clean</span
+                                    ></span
+                                >
+                            </div>
+                            <div class="folder-body">
+                                <div class="section">
+                                    <div class="section-label">Last 3 commits</div>
+                                    <div class="commits">
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">5339299</span
+                                            ><span class="msg"
+                                                >Hold the window's top-left across the shade on KWin
+                                                6.8</span
+                                            ><span class="when">2d</span>
+                                        </div>
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">1896acb</span
+                                            ><span class="msg"
+                                                >Roll the window up to Markdown Mini's 26px
+                                                strip</span
+                                            ><span class="when">5d</span>
+                                        </div>
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">bd2468d</span
+                                            ><span class="msg"
+                                                >Match the window frame to Markdown Mini's 1px grey
+                                                rim</span
+                                            ><span class="when">5d</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="section changes">
+                                    <div class="section-label">Working tree</div>
+                                    <div class="missing-line">
+                                        <span style="color: var(--ok)">Nothing uncommitted</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="folder" data-state="clean">
+                            <div
+                                class="folder-head"
+                                role="button"
+                                tabindex="0"
+                                aria-expanded="false"
+                            >
+                                <span class="chev"
+                                    ><svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2.2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M9 6l6 6-6 6" /></svg
+                                ></span>
+                                <span class="folder-mark" style="--dot: #eb927b"></span>
+                                <span class="folder-name"
+                                    ><strong>eguiTemplate</strong
+                                    ><span class="folder-path">~/js/eguiTemplate</span></span
+                                >
+                                <span class="badge">4 sessions</span>
+                                <div class="gitline">
+                                    <span class="branch">master</span>
+                                    <span class="hash">9a16ecf</span>
+                                    <span class="commit-msg"
+                                        >fix: hold the window's top-left across the shade's
+                                        roll</span
+                                    >
+                                </div>
+                                <span class="delta"
+                                    ><span class="clean"
+                                        ><svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2.4"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path d="M5 12l5 5L20 7" /></svg
+                                        >Clean</span
+                                    ></span
+                                >
+                            </div>
+                            <div class="folder-body">
+                                <div class="section">
+                                    <div class="section-label">Last 3 commits</div>
+                                    <div class="commits">
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">9a16ecf</span
+                                            ><span class="msg"
+                                                >fix: hold the window's top-left across the shade's
+                                                roll</span
+                                            ><span class="when">2d</span>
+                                        </div>
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">3f06699</span
+                                            ><span class="msg"
+                                                >docs: introduce the four scripts, what each is for
+                                                and how to call it</span
+                                            ><span class="when">3d</span>
+                                        </div>
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">4071dd7</span
+                                            ><span class="msg"
+                                                >feat: the egui template, from an empty directory to
+                                                a running app</span
+                                            ><span class="when">3d</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="section changes">
+                                    <div class="section-label">Working tree</div>
+                                    <div class="missing-line">
+                                        <span style="color: var(--ok)">Nothing uncommitted</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="folder" data-state="clean">
+                            <div
+                                class="folder-head"
+                                role="button"
+                                tabindex="0"
+                                aria-expanded="false"
+                            >
+                                <span class="chev"
+                                    ><svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2.2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M9 6l6 6-6 6" /></svg
+                                ></span>
+                                <span class="folder-mark" style="--dot: #ad8ee6"></span>
+                                <span class="folder-name"
+                                    ><strong>worktree/session-889865</strong
+                                    ><span class="folder-path">~/.pi-pocket/worktrees</span></span
+                                >
+                                <span class="badge">1 session</span>
+                                <span class="badge wt">pi-pocket worktree</span>
+                                <div class="gitline">
+                                    <span class="branch">fix/branch-picker</span>
+                                    <span class="hash">2744da7</span>
+                                    <span class="commit-msg"
+                                        >All scheduled messages: wider sheet, tighter rows</span
+                                    >
+                                </div>
+                                <span class="delta"
+                                    ><span class="clean"
+                                        ><svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2.4"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path d="M5 12l5 5L20 7" /></svg
+                                        >Clean</span
+                                    ></span
+                                >
+                            </div>
+                            <div class="folder-body">
+                                <div class="section">
+                                    <div class="section-label">Last 3 commits</div>
+                                    <div class="commits">
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">2744da7</span
+                                            ><span class="msg"
+                                                >All scheduled messages: wider sheet, tighter
+                                                rows</span
+                                            ><span class="when">36m</span>
+                                        </div>
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">ab8c544</span
+                                            ><span class="msg"
+                                                >Composer: name a model by its provider and full
+                                                id</span
+                                            ><span class="when">2h</span>
+                                        </div>
+                                        <div class="commit">
+                                            <span class="author">S</span
+                                            ><span class="hash">7b10db9</span
+                                            ><span class="msg"
+                                                >Add an all-sessions scheduled messages sheet</span
+                                            ><span class="when">2h</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="section changes">
+                                    <div class="section-label">Working tree</div>
+                                    <div class="missing-line">
+                                        <span style="color: var(--ok)">Nothing uncommitted</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="folder missing" data-state="none">
+                            <div
+                                class="folder-head"
+                                role="button"
+                                tabindex="0"
+                                aria-expanded="false"
+                            >
+                                <span class="chev"
+                                    ><svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2.2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M9 6l6 6-6 6" /></svg
+                                ></span>
+                                <span class="folder-mark" style="--dot: #565f89"></span>
+                                <span class="folder-name"
+                                    ><strong>temp</strong
+                                    ><span class="folder-path">~/js/temp</span></span
+                                >
+                                <span class="badge">24 sessions</span>
+                                <div class="gitline">
+                                    <span class="missing-line">Not a Git repository</span>
+                                </div>
+                                <span class="delta"
+                                    ><a
+                                        href="#"
+                                        style="
+                                            color: var(--muted);
+                                            font-family: var(--sans);
+                                            font-size: 11px;
+                                        "
+                                        >Open folder</a
+                                    ></span
+                                >
+                            </div>
+                            <div class="folder-body">
+                                <div class="section">
+                                    <div class="section-label">Why it is here</div>
+                                    <div class="missing-line">
+                                        24 sessions use this folder, but it is not inside a
+                                        repository. Start one with
+                                        <kbd style="margin: 0 3px">git init</kbd> or pick another
+                                        folder.
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <footer class="git-foot">
+                        <span>Read-only status</span>
+                        <span class="foot-more">·</span>
+                        <span class="foot-more" id="refresh-note"
+                            >refreshes every 20 s while this panel is open</span
+                        >
+                        <span class="foot-more">·</span>
+                        <span class="foot-more">Commit starts a new session in that folder</span>
+                        <span class="spacer"></span>
+                        <span class="keys-hint"
+                            ><kbd>Alt</kbd>+<kbd>G</kbd> toggles <span class="foot-more">·</span>
+                            <kbd>Esc</kbd> closes</span
+                        >
+                    </footer>
+                </section>
+            </main>
+        </div>
+
+        <div class="toast" id="toast" role="status" aria-live="polite">
+            <span class="toast-mark"
+                ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <path d="M5 12l5 5L20 7" /></svg
+            ></span>
+            <div class="toast-body">
+                <strong id="toast-title">Session started</strong>
+                <span id="toast-text">Pi is reviewing the changes and will commit them.</span>
+            </div>
+            <button class="toast-open">Open session</button>
+            <button class="toast-close" aria-label="Dismiss">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                >
+                    <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+            </button>
+        </div>
+
+        <script>
+            const folders = [...document.querySelectorAll(".folder")];
+            const filters = [...document.querySelectorAll(".filter")];
+
+            for (const folder of folders) {
+                const head = folder.querySelector(".folder-head");
+                const toggle = () => {
+                    const open = folder.classList.toggle("open");
+                    head.setAttribute("aria-expanded", String(open));
+                };
+                head.addEventListener("click", (event) => {
+                    if (event.target.closest("a, .commit-button")) return;
+                    toggle();
+                });
+                head.addEventListener("keydown", (event) => {
+                    if (event.target.closest(".commit-button")) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggle();
+                    }
+                });
+            }
+
+            for (const filter of filters) {
+                filter.addEventListener("click", () => {
+                    for (const other of filters) other.classList.toggle("on", other === filter);
+                    const want = filter.dataset.filter;
+                    for (const folder of folders) {
+                        folder.style.display =
+                            want === "all" || folder.dataset.state === want ? "" : "none";
+                    }
+                });
+            }
+
+            const toast = document.getElementById("toast");
+            const toastTitle = document.getElementById("toast-title");
+            const toastText = document.getElementById("toast-text");
+            let toastTimer;
+
+            function hideToast() {
+                toast.classList.remove("show");
+                clearTimeout(toastTimer);
+            }
+
+            toast.querySelector(".toast-close").addEventListener("click", hideToast);
+            toast.querySelector(".toast-open").addEventListener("click", () => {
+                hideToast();
+                // In the app: navigate to the new session.
+            });
+
+            for (const button of document.querySelectorAll(".commit-button")) {
+                button.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    if (button.classList.contains("starting")) return;
+                    const folder = button.closest(".folder");
+                    const name = folder.querySelector(".folder-name strong").textContent;
+                    const files = folder.querySelector(".delta .files")?.textContent ?? "changes";
+                    const label = button.querySelector("span");
+                    button.classList.add("starting");
+                    label.textContent = "Starting…";
+                    setTimeout(() => {
+                        button.classList.remove("starting");
+                        label.textContent = "Commit";
+                        toastTitle.textContent = `Session started in ${name}`;
+                        toastText.textContent = `Pi is reviewing ${files} and will commit the changes.`;
+                        toast.classList.add("show");
+                        clearTimeout(toastTimer);
+                        toastTimer = setTimeout(hideToast, 7000);
+                    }, 900);
+                });
+            }
+
+            const refresh = document.getElementById("refresh");
+            const checked = document.getElementById("checked");
+            refresh.addEventListener("click", () => {
+                refresh.disabled = true;
+                checked.textContent = "checking…";
+                setTimeout(() => {
+                    checked.textContent = "checked just now";
+                    refresh.disabled = false;
+                }, 650);
+            });
+        </script>
+    </body>
+</html>

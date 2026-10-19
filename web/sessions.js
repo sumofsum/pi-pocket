@@ -12,6 +12,7 @@ import {
     sessionWords,
 } from "./extension-ui.js";
 import { useDragToClose } from "./gestures.js";
+import { GitRailButton } from "./git-status.js";
 import { PeeksRailButton } from "./peeks.js";
 import { PipRailButton } from "./pip.js";
 import { sessionForest } from "./session-tree.js";
@@ -1422,6 +1423,7 @@ function Rail({ foldable = false, folded = false }) {
         }
         ${folded && html`<${RailTiles} />`}
         ${foldable && html`<${PeeksRailButton} />`}
+        <${GitRailButton} />
         <${PipRailButton} />
         <button
             class=${`rail-button rail-running ${busy > 0 ? "lit" : ""}`}

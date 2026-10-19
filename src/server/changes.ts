@@ -213,7 +213,7 @@ export function editFacts(entry: ClientEntry): ClientEntry | undefined {
     return undefined;
 }
 
-function kindOf(code: string): ChangeKind {
+export function kindOf(code: string): ChangeKind {
     if (code === "??") {
         return "new";
     }

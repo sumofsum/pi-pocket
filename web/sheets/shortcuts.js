@@ -24,6 +24,7 @@ const SHORTCUTS = [
         [
             ["Alt B", "Open or close the browser"],
             ["Alt E", "Open or close the Files tile: the folder's files, and what changed"],
+            ["Alt G", "Open or close Git status: every session folder's branch and changes"],
             ["Alt A", "Open or close PiP, your assistant"],
             ["Alt S", "Open or close scheduled messages in every session"],
             ["Alt P", "Show or hide peek tiles"],
