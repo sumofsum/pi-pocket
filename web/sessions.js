@@ -1633,13 +1633,14 @@ function Rail({ foldable = false, folded = false }) {
     const { sessions, board, me } = store.state;
     const canStart = canSteer() && !scoped();
     // Counted again only when the session list changes, not on each draw of the rail.
-    const { busy, agents } = useMemo(
+    const { busy, agents, scheduled } = useMemo(
         () => ({
             // Commands Pi runs in the background are at work too, after its answer ended.
             busy: sessions.filter((session) => session.busy || session.background > 0).length,
             agents: subagentTotals(sessions),
+            scheduled: store.state.scheduleCount ?? 0,
         }),
-        [sessions],
+        [sessions, store.state.scheduleCount],
     );
     const live = agents.working + agents.waiting;
     const failed = failing(agents);
@@ -1721,11 +1722,20 @@ function Rail({ foldable = false, folded = false }) {
             html`<button
                 class="rail-button rail-schedules"
                 data-part="rail-button"
-                title="Scheduled messages in every session (Alt+S)"
-                aria-label="Scheduled messages in every session"
+                title=${
+                    scheduled > 0
+                        ? `Scheduled messages in every session: ${scheduled} waiting (Alt+S)`
+                        : "Scheduled messages in every session (Alt+S)"
+                }
+                aria-label=${
+                    scheduled > 0
+                        ? `Scheduled messages, ${scheduled} waiting in every session`
+                        : "Scheduled messages in every session"
+                }
                 onClick=${() => openSheet({ type: "all-schedules" })}
             >
                 <${Icon} name="timer" size=${19} />
+                ${scheduled > 0 && html`<span class="rail-count">${scheduled}</span>`}
             </button>`
         }
         <button
