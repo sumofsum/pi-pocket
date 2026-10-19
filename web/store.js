@@ -335,6 +335,10 @@ export const store = {
         board: false,
         /** Every subagent in every session, while the board shows; null until the server's first list arrives. */
         boardAgents: null,
+        /** The Git status panel shows in the conversation's place (`git-status.js`). */
+        gitOpen: false,
+        /** Every session folder's git status, while this tab has it; null until the panel first looks. */
+        gitStatus: null,
         /** An extension's page in the conversation's place, as the board shows (`extension-ui.js`): `{ module, id }`. */
         page: null,
         /**
@@ -2491,10 +2495,10 @@ export function navigate(
         pushRoute(path, { replace, state: over === null ? {} : { over } });
     }
 
-    // The subagents board and extensions' pages show in the conversation's place: going to one, even the one under it,
-    // closes them.
-    if (store.state.board || store.state.page) {
-        store.set({ board: false, boardAgents: null, page: null });
+    // The subagents board, the Git status panel, and extensions' pages show in the conversation's place: going to one,
+    // even the one under it, closes them.
+    if (store.state.board || store.state.page || store.state.gitOpen) {
+        store.set({ board: false, boardAgents: null, page: null, gitOpen: false });
     }
 
     // Its row tapped again counts too.

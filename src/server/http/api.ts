@@ -22,6 +22,7 @@ import {
 import type { User } from "../config.ts";
 import { MAX_AVATAR, readAvatar } from "../avatars.ts";
 import { HttpError } from "../errors.ts";
+import { gitStatuses } from "../git-status.ts";
 import { desktopTheme, wallpaperFile } from "../omarchy.ts";
 import { runningBoard, runningNow } from "../running.ts";
 import { serveImage } from "./assets.ts";
@@ -559,6 +560,18 @@ export function createApi(options: HttpOptions, auth: Auth) {
             }
 
             return json(response, 200, app.spend.summary(user));
+        }
+
+        // Every folder a session this person can see works in, as git has it now: the Git status panel.
+        if (first === "git" && second === "status" && method === "GET") {
+            return json(
+                response,
+                200,
+                await gitStatuses(app.sessions(user), {
+                    refresh: url.searchParams.get("refresh") === "1",
+                    onlyHere: user.sessions !== undefined,
+                }),
+            );
         }
 
         if (first === "sessions" && second === undefined && method === "GET") {

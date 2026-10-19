@@ -17,6 +17,7 @@ import {
 } from "./files-panel.js";
 import { ExtensionPage, ExtensionPanel, extPanelShown } from "./extension-ui.js";
 import { startEdgeBack, startSwipes, useDragToClose } from "./gestures.js";
+import { GitPanel, toggleGit } from "./git-status.js";
 import { Splash } from "./home.js";
 import { Launcher } from "./launcher.js";
 import "./embedder.js";
@@ -580,11 +581,12 @@ function App() {
     // The sidebar and the splash show only on wide screens (style.css): narrower, they are not drawn at all. A phone
     // drew the sidebar's session list beside its own, hidden, on each change and each Back.
     const sidebar = WIDE.matches;
-    // The subagents board, or an extension's page, takes the conversation's place, and the panels beside it give it
-    // their room.
+    // The subagents board, the Git status panel, or an extension's page takes the conversation's place, and the
+    // panels beside it give it their room.
     const board = state.board;
     const page = !board && state.page !== null;
-    const placed = board || page;
+    const git = !board && !page && state.gitOpen;
+    const placed = board || page || git;
     const browsing =
         inConversation && !placed && state.browserOpen && browserAvailable() && !state.missing;
     const filing = !placed && filesShown(state);
@@ -619,8 +621,10 @@ function App() {
                       ? html`<${SubagentsBoard} />`
                       : page
                         ? html`<${ExtensionPage} key=${`${state.page.module}:${state.page.id}`} />`
-                        : inConversation
-                          ? html`${prefs().sessionTabs && html`<${SessionTabs} />`}<${Topbar} />
+                        : git
+                          ? html`<${GitPanel} />`
+                          : inConversation
+                            ? html`${prefs().sessionTabs && html`<${SessionTabs} />`}<${Topbar} />
                     ${
                         peeking &&
                         tiles.length > 0 &&
@@ -856,6 +860,7 @@ addEventListener("keydown", (event) => {
             store.state.conversationId !== null &&
             !store.state.board &&
             !store.state.page &&
+            !store.state.gitOpen &&
             browserAvailable()
         ) {
             event.preventDefault();
@@ -864,9 +869,22 @@ addEventListener("keydown", (event) => {
             return;
         }
 
-        if (event.code === "KeyE" && !store.state.board && !store.state.page && filesAvailable()) {
+        if (
+            event.code === "KeyE" &&
+            !store.state.board &&
+            !store.state.page &&
+            !store.state.gitOpen &&
+            filesAvailable()
+        ) {
             event.preventDefault();
             toggleFiles();
+
+            return;
+        }
+
+        if (event.code === "KeyG") {
+            event.preventDefault();
+            toggleGit();
 
             return;
         }
