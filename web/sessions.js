@@ -2960,6 +2960,16 @@ function Rail({ foldable = false, folded = false }) {
         >
             ${me && html`<${Avatar} person=${store.state.users.find((each) => each.id === me.id) ?? me} size=${30} />`}
         </button>
+        ${
+            store.state.server?.pocketVersion &&
+            html`<span
+                class="rail-version"
+                data-part="rail-version"
+                title=${`Pi Pocket ${store.state.server.pocketVersion}`}
+            >
+                v${store.state.server.pocketVersion}
+            </span>`
+        }
     </nav>`;
 }
 
