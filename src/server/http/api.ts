@@ -427,6 +427,18 @@ export function createApi(options: HttpOptions, auth: Auth) {
             return json(response, 200, await runningNow(app, user));
         }
 
+        // Scheduled messages across the sessions this person can see, or the one `?session=` asks for.
+        if (first === "schedules" && second === undefined && method === "GET") {
+            const asked = url.searchParams.get("session");
+            const session = asked === null ? undefined : conversationId(asked);
+
+            if (session !== undefined) {
+                app.requireSee(user, session);
+            }
+
+            return json(response, 200, await app.schedules.listAll(user, session));
+        }
+
         if (first === "spend" && method === "GET") {
             return json(response, 200, app.spend.summary(user));
         }
