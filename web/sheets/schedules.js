@@ -1,6 +1,6 @@
 // Scheduled messages of this session.
 import { useState } from "preact/hooks";
-import { actions, attempt, canSteer, closeSheet, store } from "../store.js";
+import { actions, attempt, canSteer, closeSheet, openSheet, store } from "../store.js";
 import { formatWhen, html, Icon, Sheet } from "../ui.js";
 
 /** Messages that go to Pi later or on repeat: set one up, see what is coming, cancel one. */
@@ -67,5 +67,12 @@ export function SchedulesSheet() {
                 )}
             </div>`
         }
+        <button
+            class="button ghost wide"
+            onClick=${() => openSheet({ type: "all-schedules" })}
+        >
+            <${Icon} name="timer" size=${16} />
+            All scheduled messages
+        </button>
     <//>`;
 }

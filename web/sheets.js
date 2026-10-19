@@ -25,6 +25,7 @@ import { InviteSheet, PeopleSheet } from "./sheets/people.js";
 import { AuthDialog, ProvidersSheet } from "./sheets/providers.js";
 import { RunningSheet } from "./sheets/running.js";
 import { HooksSheet } from "./sheets/hooks.js";
+import { AllSchedulesSheet } from "./sheets/all-schedules.js";
 import { SchedulesSheet } from "./sheets/schedules.js";
 import { SessionSheet } from "./sheets/session.js";
 import { ShortcutsSheet } from "./sheets/shortcuts.js";
@@ -319,6 +320,9 @@ function sheetBody(sheet) {
             break;
         case "schedules":
             body = view.conversation ? html`<${SchedulesSheet} />` : null;
+            break;
+        case "all-schedules":
+            body = html`<${AllSchedulesSheet} />`;
             break;
         case "hooks":
             body = html`<${HooksSheet} />`;
