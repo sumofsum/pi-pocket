@@ -137,6 +137,7 @@ export const PARTS = [
     "brand-mark",
     "rail",
     "rail-button",
+    "rail-version",
     "sidebar",
     "drawer",
     "session-list",

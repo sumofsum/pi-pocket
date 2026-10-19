@@ -4007,6 +4007,18 @@ pre.diff .del {
     border-radius: 50%;
 }
 
+/* Pi Pocket's version, in the corner under you. */
+.rail-version {
+    flex: none;
+    margin-top: -2px;
+    padding: 0 2px;
+    font: 500 9px/1.2 var(--mono);
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    color: var(--faint);
+    user-select: all;
+}
+
 /* Folded: the sessions as numbered tiles, like Waybar's workspaces, between New and the tools. */
 .rail-items {
     position: relative;
