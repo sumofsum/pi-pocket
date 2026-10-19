@@ -2,7 +2,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { folderColor } from "../avatar.js";
 import { actions, attempt, canSteer, closeSheet, navigate, notify, store } from "../store.js";
-import { formatWhen, html, Icon, Loader, Sheet } from "../ui.js";
+import { formatWhen, html, Loader, Sheet } from "../ui.js";
 
 /** How often the page asks again while it is open. */
 const REFRESH_MS = 10_000;
@@ -105,34 +105,40 @@ export function AllSchedulesSheet() {
             : `${schedule.repeat} · next ${formatWhen(schedule.next)}`;
     const row = (schedule) =>
         html`<div class="schedule" key=${`${schedule.conversationId}:${schedule.id}`}>
-            <${Icon} name="clock" size=${15} />
             <div class="grow">
                 <div class="schedule-text">${schedule.text}</div>
-                <div class="muted small">
-                    ${whenLine(schedule)} · set by ${setBy(schedule.by)}
+                <div class="schedule-meta">
+                    <span class="muted small">
+                        ${whenLine(schedule)} · set by ${setBy(schedule.by)}
+                    </span>
+                    <div class="schedule-tags">
+                        <button
+                            class="chip schedule-session"
+                            title=${schedule.title}
+                            onClick=${() => go(schedule.conversationId)}
+                        >
+                            <span
+                                class="folder-mark"
+                                style=${`--folder:${folderColor(cwdOf(schedule.conversationId))}`}
+                                aria-hidden="true"
+                            ></span>
+                            <span class="schedule-session-name">${schedule.title}</span>
+                        </button>
+                        ${
+                            steer &&
+                            html`<button
+                                class="button small ghost"
+                                onClick=${() => cancel(schedule)}
+                            >
+                                Cancel
+                            </button>`
+                        }
+                    </div>
                 </div>
-                <button
-                    class="chip schedule-session"
-                    title=${schedule.title}
-                    onClick=${() => go(schedule.conversationId)}
-                >
-                    <span
-                        class="folder-mark"
-                        style=${`--folder:${folderColor(cwdOf(schedule.conversationId))}`}
-                        aria-hidden="true"
-                    ></span>
-                    <span class="schedule-session-name">${schedule.title}</span>
-                </button>
             </div>
-            ${
-                steer &&
-                html`<button class="button small ghost" onClick=${() => cancel(schedule)}>
-                    Cancel
-                </button>`
-            }
         </div>`;
 
-    return html`<${Sheet} title="All scheduled messages" onClose=${closeSheet}>
+    return html`<${Sheet} title="All scheduled messages" onClose=${closeSheet} wide=${true}>
         <p class="muted small">
             Every scheduled message in the sessions you can see. Tap its session to go there.
         </p>
