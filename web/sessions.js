@@ -1362,6 +1362,7 @@ function Rail({ foldable = false, folded = false }) {
     const { sessions, board, me } = store.state;
     const canStart = canSteer() && !scoped();
     const busy = sessions.filter((session) => session.busy).length;
+    const scheduled = store.state.scheduleCount ?? 0;
     const agents = subagentTotals(sessions);
     const live = agents.working + agents.waiting;
     const failed = failing(agents);
@@ -1441,11 +1442,20 @@ function Rail({ foldable = false, folded = false }) {
             html`<button
                 class="rail-button rail-schedules"
                 data-part="rail-button"
-                title="Scheduled messages in every session (Alt+S)"
-                aria-label="Scheduled messages in every session"
+                title=${
+                    scheduled > 0
+                        ? `Scheduled messages in every session: ${scheduled} waiting (Alt+S)`
+                        : "Scheduled messages in every session (Alt+S)"
+                }
+                aria-label=${
+                    scheduled > 0
+                        ? `Scheduled messages, ${scheduled} waiting in every session`
+                        : "Scheduled messages in every session"
+                }
                 onClick=${() => openSheet({ type: "all-schedules" })}
             >
                 <${Icon} name="timer" size=${19} />
+                ${scheduled > 0 && html`<span class="rail-count">${scheduled}</span>`}
             </button>`
         }
         <button

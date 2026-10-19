@@ -128,6 +128,8 @@ export const store = {
         gitOpen: false,
         /** Every session folder's git status, while this tab has it; null until the panel first looks. */
         gitStatus: null,
+        /** How many scheduled messages this person has, across sessions; null until the first look (`app.js`). */
+        scheduleCount: null,
         /** An extension's page in the conversation's place, as the board shows (`extension-ui.js`): `{ module, id }`. */
         page: null,
         /**
@@ -1160,7 +1162,14 @@ export const actions = {
             session === undefined
                 ? "schedules"
                 : `schedules?session=${encodeURIComponent(session)}`,
-        ),
+        ).then((list) => {
+            // The whole list is the rail's count; one session's is not.
+            if (session === undefined) {
+                store.set({ scheduleCount: list.length });
+            }
+
+            return list;
+        }),
     cancelSchedule: (id, session = current()) =>
         api(`c/${session}/schedules/${encodeURIComponent(id)}/cancel`, {}),
     setGoal: (command) => api(`c/${current()}/goal`, { command }),

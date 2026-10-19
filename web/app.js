@@ -509,14 +509,44 @@ function PanelHost({ shown, panel }) {
     return html`<${panel} leaving=${leaving} />`;
 }
 
+/** How often the rail's schedule count is looked at again while this tab is open. */
+const SCHEDULES_EVERY_MS = 10_000;
+
 function App() {
     const state = store.state;
+    const schedulesOn = state.server?.extensions?.includes("pocket-schedules") === true;
 
     useEffect(() => {
         document.title = state.view.conversation?.title
             ? `${state.view.conversation.title} · Pi Pocket`
             : "Pi Pocket";
     }, [state.view.conversation?.title]);
+
+    // The rail's timer shows how many scheduled messages wait, in every session: looking again keeps the count true
+    // as schedules fire, and as Pi or anyone else adds one.
+    useEffect(() => {
+        if (!schedulesOn) {
+            return undefined;
+        }
+
+        // A look that fails keeps the last count: the button still opens the list, where the error shows.
+        const load = () => actions.schedules().catch(() => {});
+        const timer = setInterval(load, SCHEDULES_EVERY_MS);
+
+        const seen = () => {
+            if (!document.hidden) {
+                load();
+            }
+        };
+
+        load();
+        document.addEventListener("visibilitychange", seen);
+
+        return () => {
+            clearInterval(timer);
+            document.removeEventListener("visibilitychange", seen);
+        };
+    }, [schedulesOn]);
 
     if (state.me === undefined) {
         return html`<${Boot}
