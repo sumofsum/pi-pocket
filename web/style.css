@@ -2915,10 +2915,6 @@ pre.diff .del {
     opacity: 0.55;
 }
 
-.scroll-tools > .nav-back {
-    opacity: 1;
-}
-
 /* Awake while the reader scrolls or touches the controls; asleep again soon after they stop. */
 .scroll-tools.awake > *,
 .scroll-tools:hover > *,
@@ -2931,43 +2927,6 @@ body.history-open .scroll-tools,
 body.history-open .scroll-tools > * {
     opacity: 0;
     pointer-events: none;
-}
-
-/* A jump's way back, for a few seconds. */
-.nav-back {
-    height: 30px;
-    padding: 0 9px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-    border: 1px solid var(--hair-2);
-    border-radius: var(--r-pill);
-    background: var(--bg);
-    box-shadow: var(--shadow);
-    color: var(--text);
-    font: 500 11px var(--sans);
-    pointer-events: auto;
-    cursor: pointer;
-    animation: popin var(--t-in) var(--ease-out);
-    transition:
-        background-color var(--t-hover) var(--ease-out),
-        color var(--t-hover) var(--ease-out),
-        transform 90ms var(--ease-out);
-}
-
-@media (hover: hover) {
-    .nav-back:hover {
-        background: var(--hover);
-    }
-}
-
-.nav-back:active {
-    transform: scale(0.94);
-}
-
-.nav-back .icon {
-    display: block;
 }
 
 /* Which prompt of how many; it opens the message history. */
