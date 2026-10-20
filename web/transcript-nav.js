@@ -321,19 +321,6 @@ export function TranscriptNav({ scroller, prompts, showJump, onJump, conversatio
                 </button>
             </div>`
         }
-        ${
-            backing &&
-            html`<button
-                class="nav-back"
-                type="button"
-                title="Back to where I was"
-                aria-label="Back to where I was"
-                onClick=${restoreBack}
-            >
-                <${Icon} name="back" size=${13} />
-                <span>Back</span>
-            </button>`
-        }
         <button
             class="jump"
             type="button"
