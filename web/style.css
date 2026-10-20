@@ -807,6 +807,19 @@ kbd {
     flex: none;
 }
 
+/* For a status a screen reader reads and the eye does not. */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 /* ─── Layout: windows on a desktop ─────────────────────────── */
 
 .layout {
@@ -1451,6 +1464,15 @@ kbd {
 }
 
 /* ─── Transcript ───────────────────────────────────────────── */
+
+/* The conversation and its floating arrows, above the message box. */
+.chat-area {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
 
 .scroller {
     flex: 1;
@@ -2865,12 +2887,168 @@ pre.diff .del {
     }
 }
 
+/* The message arrows and the way back to the newest message, one column at the conversation's edge. */
+.scroll-tools {
+    position: absolute;
+    right: 0.8rem;
+    bottom: 0.8rem;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 40px;
+    pointer-events: none;
+}
+
+.scroll-tools > * {
+    pointer-events: auto;
+    transition: opacity 600ms var(--ease-out);
+}
+
+/* The step arrows sleep; the history/index button stays readable even before the first scroll. */
+.scroll-tools > *:not(.nav-count) {
+    opacity: 0.18;
+}
+
+.scroll-tools > .nav-count {
+    opacity: 0.55;
+}
+
+.scroll-tools > .nav-back {
+    opacity: 1;
+}
+
+/* Awake while the reader scrolls or touches the controls; asleep again soon after they stop. */
+.scroll-tools.awake > *,
+.scroll-tools:hover > *,
+.scroll-tools:has(:focus-visible) > * {
+    opacity: 1;
+}
+
+/* The list has its own arrows: the counter and arrows step aside while it is open. */
+body.history-open .scroll-tools,
+body.history-open .scroll-tools > * {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* A jump's way back, for a few seconds. */
+.nav-back {
+    height: 30px;
+    padding: 0 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    border: 1px solid var(--hair-2);
+    border-radius: var(--r-pill);
+    background: var(--bg);
+    box-shadow: var(--shadow);
+    color: var(--text);
+    font: 500 11px var(--sans);
+    pointer-events: auto;
+    cursor: pointer;
+    animation: popin var(--t-in) var(--ease-out);
+    transition:
+        background-color var(--t-hover) var(--ease-out),
+        color var(--t-hover) var(--ease-out),
+        transform 90ms var(--ease-out);
+}
+
+@media (hover: hover) {
+    .nav-back:hover {
+        background: var(--hover);
+    }
+}
+
+.nav-back:active {
+    transform: scale(0.94);
+}
+
+.nav-back .icon {
+    display: block;
+}
+
+/* Which prompt of how many; it opens the message history. */
+.nav-count .icon {
+    display: block;
+}
+
+.nav-count {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    padding: 0;
+    border: 1px solid var(--hair-2);
+    border-radius: var(--r-pill);
+    background: var(--bg);
+    box-shadow: var(--shadow);
+    color: var(--muted);
+    font: 500 10px/1 var(--mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+@media (hover: hover) {
+    .nav-count:hover {
+        background: var(--hover);
+        color: var(--text);
+    }
+}
+
+.nav-stepper {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--hair-2);
+    border-radius: var(--r-pill);
+    background: var(--bg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    animation: popin var(--t-in) var(--ease-out);
+}
+
+.nav-stepper button {
+    width: 40px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    color: var(--body);
+    transition:
+        background-color var(--t-hover) var(--ease-out),
+        color var(--t-hover) var(--ease-out),
+        transform 90ms var(--ease-out);
+}
+
+.nav-stepper button + button {
+    border-top: 1px solid var(--hair);
+}
+
+@media (hover: hover) {
+    .nav-stepper button:hover:not(:disabled) {
+        background: var(--hover);
+        color: var(--accent);
+    }
+}
+
+.nav-stepper button:active:not(:disabled) {
+    transform: scale(0.9);
+}
+
+.nav-stepper button:disabled {
+    color: var(--faint);
+    opacity: 0.42;
+    cursor: default;
+}
+
 /* The way back to the newest message. */
 .jump {
-    position: sticky;
-    bottom: 0.8rem;
-    left: 100%;
-    margin-right: 0.8rem;
     width: 40px;
     height: 40px;
     border: 1px solid var(--hair-2);
@@ -2880,12 +3058,19 @@ pre.diff .del {
     color: var(--body);
     display: grid;
     place-items: center;
-    float: right;
     animation: popin var(--t-in) var(--ease-out);
     transition:
         border-color var(--t-hover) var(--ease-out),
         color var(--t-hover) var(--ease-out),
         transform 90ms var(--ease-out);
+}
+
+/* Its room stays while it is away, so the arrows above never move. */
+.jump[hidden] {
+    display: grid;
+    visibility: hidden;
+    pointer-events: none;
+    animation: none;
 }
 
 @media (hover: hover) {
@@ -3738,6 +3923,485 @@ pre.diff .del {
 .status-line[data-short~="words"] .speed .rate + .wait::before {
     content: "·";
     margin-right: 1ch;
+}
+
+/* ─── Message history ──────────────────────────────────────── */
+
+/* The prompts you sent here, from the bubble between Attach and the model. */
+.message-history {
+    position: absolute;
+    left: 40px;
+    bottom: calc(100% + 10px);
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    width: 442px;
+    max-width: calc(100vw - 40px);
+    padding: 8px;
+    border: 1px solid var(--hair-2);
+    border-radius: var(--r-window);
+    background: var(--bg);
+    box-shadow: var(--pop);
+    animation: popin var(--t-in) var(--ease-out);
+}
+
+.message-history[hidden] {
+    display: none;
+}
+
+.message-history-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 1px;
+    flex: none;
+}
+
+.message-history-title {
+    color: var(--text);
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+.message-history-count {
+    min-width: 18px;
+    height: 17px;
+    padding: 0 5px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r-pill);
+    background: var(--hover);
+    color: var(--muted);
+    font: 10px var(--mono);
+}
+
+.message-history-close {
+    margin-left: auto;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r-row);
+    color: var(--faint);
+}
+
+@media (hover: hover) {
+    .message-history-close:hover {
+        background: var(--hover);
+        color: var(--text);
+    }
+}
+
+.message-history-hint {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    color: var(--faint);
+    font-size: 11.5px;
+    line-height: 1.4;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.message-history-filter {
+    flex: 1;
+    min-width: 0;
+    height: 24px;
+    margin: 0;
+    padding: 0 8px;
+    border: 1px solid var(--hair-2);
+    border-radius: var(--r-control);
+    background: var(--bg);
+    color: var(--text);
+    font: 11.5px var(--sans);
+}
+
+.message-history-filter::placeholder {
+    color: var(--faint);
+}
+
+.message-history-filter:focus-visible {
+    border-color: var(--accent-line);
+    outline: none;
+}
+
+.message-history-list {
+    display: flex;
+    flex-direction: column;
+    flex: 0 1 auto;
+    gap: 2px;
+    min-height: 0;
+    max-height: 286px;
+    padding: 2px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-top: 1px solid var(--hair);
+}
+
+.message-history-list:focus {
+    outline: none;
+}
+
+.message-history-empty {
+    margin: 0;
+    padding: 16px 10px;
+    color: var(--faint);
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+
+.message-history-item {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    border-radius: var(--r-control);
+    transition: background-color var(--t-hover) var(--ease-out);
+}
+
+.message-history-item:hover,
+.message-history-item:focus-within {
+    background: var(--hover);
+}
+
+/* The prompt the conversation's arrows are on, when the list opens. */
+.message-history-item.current {
+    background: var(--accent-soft);
+    box-shadow: inset 2px 0 var(--accent);
+}
+
+.message-history-item.current .message-history-time {
+    color: var(--accent);
+}
+
+/* The prompt Pi is answering now breathes. */
+.message-history-item.working {
+    animation: message-history-breathe 2.4s var(--ease-in-out) infinite;
+}
+
+@keyframes message-history-breathe {
+    0%,
+    100% {
+        background-color: var(--accent-soft);
+    }
+    50% {
+        background-color: color-mix(in srgb, var(--accent) 24%, transparent);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .message-history-item.working {
+        animation: none;
+        background-color: var(--accent-soft);
+    }
+
+    .message-history-working::before {
+        animation: none;
+    }
+}
+
+.message-history-pick {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+    padding: 9px 4px 9px 10px;
+    border-radius: var(--r-control) 0 0 var(--r-control);
+    text-align: left;
+}
+
+.message-history-when {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.message-history-time {
+    padding-top: 2px;
+    color: var(--faint);
+    font: 10.5px/1.4 var(--mono);
+    white-space: nowrap;
+}
+
+/* Pi Pocket's spinner, one quadrant stepping around four, centered under the time. No bed of its own. */
+.message-history-working {
+    position: relative;
+    flex: none;
+    align-self: center;
+    width: 14px;
+    height: 14px;
+    --q: 6.5px;
+    --dim: color-mix(in srgb, var(--accent) 28%, transparent);
+    border-radius: 3px;
+    overflow: hidden;
+    color: var(--accent);
+    background:
+        linear-gradient(var(--dim), var(--dim)) 0 0 / var(--q) var(--q) no-repeat,
+        linear-gradient(var(--dim), var(--dim)) 100% 0 / var(--q) var(--q) no-repeat,
+        linear-gradient(var(--dim), var(--dim)) 0 100% / var(--q) var(--q) no-repeat,
+        linear-gradient(var(--dim), var(--dim)) 100% 100% / var(--q) var(--q) no-repeat;
+}
+
+.message-history-working::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--q);
+    height: var(--q);
+    background: currentColor;
+    animation: state-quadrant 1.6s steps(1, end) infinite;
+}
+
+.message-history-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.message-history-author {
+    color: var(--faint);
+    font: 10px/1.3 var(--sans);
+}
+
+.message-history-author:not([data-mine]) {
+    color: var(--body);
+    font-weight: 600;
+}
+
+.message-history-text {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    min-width: 0;
+    color: var(--text);
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+
+/* How long Pi took to answer this prompt, under its words at the right. */
+.message-history-took {
+    align-self: flex-end;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--faint);
+    font: 10px/1 var(--mono);
+    font-variant-numeric: tabular-nums;
+}
+
+.message-history-took .icon {
+    display: block;
+}
+
+.message-history-only {
+    align-self: flex-start;
+    color: var(--faint);
+    font: 9.5px/1.2 var(--sans);
+}
+
+/* The marks sit on the first line, centered in its height. */
+.message-history-attachments {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 1.45em;
+    color: var(--muted);
+}
+
+.message-history-attachment {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.message-history-attachment .icon {
+    display: block;
+}
+
+.message-history-words {
+    display: -webkit-box;
+    min-width: 0;
+    overflow: hidden;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.message-history-words.placeholder {
+    color: var(--faint);
+    font-style: italic;
+}
+
+.message-history-copy,
+.message-history-jump {
+    flex: none;
+    align-self: center;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    color: var(--muted);
+    transition:
+        background-color var(--t-hover) var(--ease-out),
+        color var(--t-hover) var(--ease-out);
+}
+
+.message-history-copy {
+    margin: 0;
+}
+
+.message-history-jump {
+    margin: 0 6px 0 0;
+}
+
+@media (hover: hover) {
+    .message-history-copy:hover,
+    .message-history-jump:hover {
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+}
+
+.message-history-copy:active,
+.message-history-jump:active {
+    color: var(--accent);
+}
+
+.message-history-foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: none;
+    gap: 10px;
+    margin-top: 4px;
+    padding: 5px 9px 2px;
+    border-top: 1px solid var(--hair);
+    color: var(--faint);
+    font-size: 10.5px;
+}
+
+.message-history-tools {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.message-history-nav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.message-history-back {
+    height: 28px;
+    padding: 0 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    border: 1px solid var(--hair-2);
+    border-radius: var(--r-pill);
+    background: var(--bg);
+    color: var(--text);
+    font: 500 11px var(--sans);
+    transition:
+        background-color var(--t-hover) var(--ease-out),
+        color var(--t-hover) var(--ease-out),
+        transform 90ms var(--ease-out);
+}
+
+.message-history-back .icon {
+    display: block;
+}
+
+@media (hover: hover) {
+    .message-history-back:hover {
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+}
+
+.message-history-back:active {
+    transform: scale(0.94);
+}
+
+.message-history-filter-button,
+.message-history-nav button {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    color: var(--muted);
+    transition:
+        background-color var(--t-hover) var(--ease-out),
+        color var(--t-hover) var(--ease-out);
+}
+
+@media (hover: hover) {
+    .message-history-filter-button:hover,
+    .message-history-nav button:hover:not(:disabled) {
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+}
+
+.message-history-filter-button:active,
+.message-history-nav button:active:not(:disabled) {
+    color: var(--accent);
+}
+
+.message-history-filter-button[aria-pressed="true"] {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.message-history-nav button:disabled {
+    color: var(--faint);
+    opacity: 0.38;
+    cursor: default;
+}
+
+@media (max-width: 699px) {
+    /* Full width, about a fifth wider than before: the list has its own up/down arrows now. */
+    .message-history {
+        left: 0;
+        right: 0;
+        width: auto;
+        max-width: none;
+    }
+
+    .message-history-filter {
+        height: 32px;
+        font-size: 16px;
+    }
+
+    .message-history-close,
+    .message-history-copy,
+    .message-history-jump,
+    .message-history-filter-button,
+    .message-history-nav button {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+/* The bubble that opens it sits lit while the list is open. */
+.composer-row .history-button.on {
+    background: var(--accent-soft);
+    color: var(--accent);
 }
 
 /* ─── Extensions ───────────────────────────────────────────── */
@@ -12894,10 +13558,10 @@ textarea.notes {
     .pane {
         overflow-x: clip;
     }
-    :root[data-route="forward"] .pane > .scroller {
+    :root[data-route="forward"] .pane > :is(.chat-area, .scroller) {
         animation: route-forward 0.32s var(--ease-out);
     }
-    :root[data-route="back"] .pane > .scroller,
+    :root[data-route="back"] .pane > :is(.chat-area, .scroller),
     :root[data-route="back"] .home-list {
         animation: route-back 0.32s var(--ease-out);
     }

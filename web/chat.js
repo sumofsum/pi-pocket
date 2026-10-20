@@ -135,9 +135,10 @@ let jumps = 0;
 /**
  * Close the sheet and scroll the transcript to a message, briefly highlighted. The docked People panel stays. Resolves
  * true once it shows, false when it cannot: not in the session's transcript, the session changed, or a newer jump came.
- * `quiet` leaves the "earlier history" notice to the caller (`pocket.reveal`).
+ * `quiet` leaves the "earlier history" notice to the caller (`pocket.reveal`). `top` puts it at the top of the
+ * conversation (as the message arrows do); otherwise a long one starts at its top and a short one is centered.
  */
-export function jumpToEntry(entryId, { quiet = false } = {}) {
+export function jumpToEntry(entryId, { quiet = false, top = false } = {}) {
     closeSheet();
     const jump = ++jumps;
     const { view, conversationId } = store.state;
@@ -146,7 +147,7 @@ export function jumpToEntry(entryId, { quiet = false } = {}) {
     // In the session but not loaded yet (a view brings only the newest): load back to it first.
     if (view.order.includes(entryId) && !isLoaded(view, entryId)) {
         return loadEarlier({ from: entryId }).then(
-            () => current() && isLoaded(store.state.view, entryId) && show(entryId, jump, quiet),
+            () => current() && isLoaded(store.state.view, entryId) && show(entryId, jump, quiet, top),
             (error) => {
                 notify("error", error.message ?? String(error));
 
@@ -155,11 +156,11 @@ export function jumpToEntry(entryId, { quiet = false } = {}) {
         );
     }
 
-    return show(entryId, jump, quiet);
+    return show(entryId, jump, quiet, top);
 }
 
 /** The scroll and flash of a jump, once the entry is loaded. */
-function show(entryId, jump, quiet) {
+function show(entryId, jump, quiet, top) {
     // A message above the rows the transcript shows: show from it down. The render runs before the next frame.
     revealEntry(entryId);
     // An answer of only tool calls is a mark in a group of Pi's calls: the group opens (transcript.js).
@@ -189,14 +190,36 @@ function show(entryId, jump, quiet) {
                 ? (found.closest(".activity")?.querySelector(".activity-head") ?? found)
                 : found;
 
-            // A long one from its top, where it starts: centered, its middle would show, and what was found may be above.
-            const tall = element.getBoundingClientRect().height > innerHeight / 2;
             const still = document.documentElement.dataset.motion === "reduced";
 
-            element.scrollIntoView({
-                block: tall ? "start" : "center",
-                behavior: still ? "auto" : "smooth",
-            });
+            if (top) {
+                // At the top of the conversation, where it starts (the message arrows ask for this).
+                const pane = element.closest(".scroller");
+
+                if (pane) {
+                    const offset =
+                        element.getBoundingClientRect().top - pane.getBoundingClientRect().top;
+
+                    pane.scrollTo({
+                        top: pane.scrollTop + offset - 14,
+                        behavior: still ? "auto" : "smooth",
+                    });
+                } else {
+                    element.scrollIntoView({
+                        block: "start",
+                        behavior: still ? "auto" : "smooth",
+                    });
+                }
+            } else {
+                // A long one from its top, where it starts: centered, its middle would show, and what was found may be above.
+                const tall = element.getBoundingClientRect().height > innerHeight / 2;
+
+                element.scrollIntoView({
+                    block: tall ? "start" : "center",
+                    behavior: still ? "auto" : "smooth",
+                });
+            }
+
             element.classList.remove("flash");
             void element.offsetWidth;
             element.classList.add("flash");

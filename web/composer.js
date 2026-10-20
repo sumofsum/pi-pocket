@@ -1,6 +1,6 @@
 // The message box: send, steer or queue while busy, attach files, mention files with @, run commands with !, recall
 // what was sent before (↑, Ctrl+R), fold long pastes, pick the model, stop.
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { Avatar } from "./avatar.js";
 import { boxKey, keyBox } from "./box-keys.js";
 import { chatUnread, TypingLine } from "./chat.js";
@@ -19,6 +19,7 @@ import {
     canSteer,
     collab,
     drafts,
+    isRow,
     navigate,
     notify,
     openSheet,
@@ -43,7 +44,10 @@ import {
     Marked,
     modelLabel,
     Spinner,
+    splitAttachments,
 } from "./ui.js";
+import { MessageHistory } from "./message-history.js";
+import { currentPrompt, subscribeCurrentPrompt } from "./nav-current.js";
 
 /** The explicit route to the parent on every layout, outside the dock and the scrolling conversation. */
 function ParentSessionButton() {
@@ -80,6 +84,9 @@ let insertedUpTo = 0;
 const PASTE_LINES = 20;
 const PASTE_CHARS = 2000;
 const PASTED = /\[Pasted text #(\d+)[^\]\n]*\]/g;
+/** An image in a message's attachment list, by its mime or its path's extension. */
+const ATTACHED_IMAGE = /,\s*image\//i;
+const IMAGE_FILE = /\.(?:png|jpe?g|gif|webp|avif|bmp|heic|heif|svg)$/i;
 /** Sent messages longer than this are not kept for ↑: a long paste would crowd out the rest. */
 const REMEMBER_CHARS = 20_000;
 /** An @mention of a file (with a dot or a slash, unlike a person's name), for the Send files chip. */
@@ -395,6 +402,8 @@ export function Composer() {
     // ↑ through what was sent before: where in that list, and the draft ↓ comes back to. Ctrl+R searches it.
     const [browsing, setBrowsing] = useState(null);
     const [searching, setSearching] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [historyFocus, setHistoryFocus] = useState(null);
     const [inlineFiles, setInlineFiles] = useState(() => localStorage.getItem(INLINE_KEY) === "1");
     const box = useRef(null);
     // The box as it comes and goes (taking the wheel shows it, with the draft in it): fitted to its text at once, and
@@ -437,6 +446,120 @@ export function Composer() {
     const commandRequest = useRef(null);
     const busy = view.live.busy;
     const agent = view.agent;
+    const meId = store.state.me?.id;
+    const users = store.state.users;
+
+    /** Every prompt in the session, oldest first, with who sent it; your own without attachments or app-made prefixes. */
+    const sessionMessages = useMemo(() => {
+        if (!meId) {
+            return [];
+        }
+
+        const found = [];
+        const finished = new Map();
+        const rows = view.order
+            .map((id) => view.entries.get(id))
+            .filter((entry) => entry && isRow(entry));
+        let asked = null;
+        let answered = null;
+
+        const remember = () => {
+            if (asked?.at === undefined || answered?.at === undefined) {
+                return;
+            }
+
+            const took = answered.at - asked.at;
+
+            if (Number.isFinite(took) && took >= 0) {
+                finished.set(asked.id, took);
+            }
+        };
+
+        for (const entry of rows) {
+            if (entry.kind === "user") {
+                remember();
+                asked = entry;
+                answered = null;
+            } else if (entry.kind === "assistant" && asked) {
+                answered = entry;
+            }
+        }
+
+        // A turn still running has only its start: wait for Pi to finish before showing a time.
+        if (!view.live.busy) {
+            remember();
+        }
+
+        const lastUser = rows.findLast((entry) => entry.kind === "user");
+        const workingId = view.live.busy ? lastUser?.id : undefined;
+
+        for (const id of view.order) {
+            const entry = view.entries.get(id);
+
+            if (!entry || !isRow(entry) || entry.kind !== "user") {
+                continue;
+            }
+
+            const authorId = view.authors?.[entry.id];
+            const mine = authorId !== undefined && authorId === meId;
+            const named = authorId
+                ? (users.find((user) => user.id === authorId)?.name ?? "Someone")
+                : (entry.from ?? (view.conversation?.kind === "subagent" ? "Main agent" : "Pi"));
+            const author = mine ? "You" : named;
+            const [written, attached = ""] = splitAttachments(entry.text);
+            let text = written.trim();
+            const via = /^\[via [^\]\n]{1,300}\] /.exec(text);
+
+            if (via) {
+                text = text.slice(via[0].length);
+            }
+
+            if (text.startsWith("[scheduled] ")) {
+                text = text.slice("[scheduled] ".length);
+            }
+
+            const lines = attached.split("\n").filter((line) => line.trim() !== "");
+            const image =
+                entry.images > 0 ||
+                lines.some((line) => ATTACHED_IMAGE.test(line)) ||
+                (entry.files?.some((path) => IMAGE_FILE.test(path)) ?? false);
+            const file =
+                lines.some((line) => !ATTACHED_IMAGE.test(line)) ||
+                (entry.files?.some((path) => !IMAGE_FILE.test(path)) ?? false);
+            const attachmentsLabel =
+                image && file
+                    ? "Image and file attached"
+                    : image
+                      ? "Image attached"
+                      : file
+                        ? "File attached"
+                        : "No text";
+
+            found.push({
+                id: entry.id,
+                at: entry.at,
+                text,
+                author,
+                mine,
+                pickable: mine && text !== "",
+                attachmentsLabel,
+                image,
+                file,
+                took: finished.get(entry.id),
+                working: workingId !== undefined && entry.id === workingId,
+            });
+        }
+
+        return found;
+    }, [
+        view.order,
+        view.entries,
+        view.authors,
+        view.live.busy,
+        meId,
+        users,
+        view.conversation?.kind,
+    ]);
 
     // An Interrupt is for the run it was chosen in: when Pi stops working, an unused one goes back to Steer, so it does
     // not stop the next run. Steer and Queue stay as the person chose.
@@ -464,7 +587,21 @@ export function Composer() {
         setPastes(loadPastes(conversationId));
         setBrowsing(null);
         setSearching(false);
+        setHistoryOpen(false);
+        setHistoryFocus(null);
     }, [conversationId]);
+    // While the message history is open, its highlight follows the prompt the conversation's arrows are on.
+    useEffect(() => {
+        if (!historyOpen) {
+            return undefined;
+        }
+
+        return subscribeCurrentPrompt((conversation, id) => {
+            if (conversation === conversationId) {
+                setHistoryFocus(id);
+            }
+        });
+    }, [historyOpen, conversationId]);
     // A session opens with the caret in its message box, ready to type: not on a touch screen, where the keyboard would
     // come up over the conversation, nor after an Alt shortcut on an Apple keyboard (`openingByAlt`), nor while another
     // text field has the focus (the docked chat a mention opened, the session search): words typed there stay there.
@@ -552,6 +689,64 @@ export function Composer() {
 
         // A command is not a message to Pi: no "typing to Pi" for it.
         typing(value.trim() === "" || value.startsWith("/") ? null : "pi");
+    };
+
+    const closeHistory = (focus = false) => {
+        setHistoryOpen(false);
+
+        if (focus) {
+            requestAnimationFrame(() =>
+                document.querySelector(".nav-count")?.focus({ preventScroll: true }),
+            );
+        }
+    };
+
+    // The counter over the conversation opens the list, on the prompt it is showing.
+    useEffect(() => {
+        const open = () => {
+            setBrowsing(null);
+            setSearching(false);
+            setHistoryFocus(currentPrompt(conversationId));
+            setHistoryOpen(true);
+        };
+
+        document.addEventListener("pocket:open-history", open);
+
+        return () => document.removeEventListener("pocket:open-history", open);
+    }, [conversationId]);
+
+    const pickHistory = (message) => {
+        if (!message.pickable) {
+            return;
+        }
+
+        const draft = text.trim();
+
+        if (
+            draft !== "" &&
+            draft !== message.text.trim() &&
+            !confirm("Replace your unsent draft with this message?")
+        ) {
+            return;
+        }
+
+        setHistoryOpen(false);
+        update(message.text);
+        requestAnimationFrame(() => {
+            const element = box.current;
+
+            if (!element) {
+                return;
+            }
+
+            element.focus();
+            element.setSelectionRange(element.value.length, element.value.length);
+        });
+    };
+
+    const jumpHistory = (message) => {
+        // The transcript's arrows do the jump and keep this list open (transcript-nav.js).
+        document.dispatchEvent(new CustomEvent("pocket:jump-prompt", { detail: message.id }));
     };
 
     // Ctrl+R: what was sent before that has the words in the box.
@@ -1073,7 +1268,7 @@ export function Composer() {
                 : "Queue a message for after this run…"
           : "Ask Pi anything…";
     const inbox = view.inbox ?? [];
-    const { me, users } = store.state;
+    const { me } = store.state;
     const queuedBy = (item) =>
         item.by === undefined
             ? ""
@@ -1394,6 +1589,14 @@ export function Composer() {
                         addFiles([...(event.dataTransfer?.files ?? [])]);
                     }}
                 >
+                    <${MessageHistory}
+                        open=${historyOpen}
+                        focusId=${historyFocus}
+                        messages=${sessionMessages}
+                        onClose=${closeHistory}
+                        onPick=${pickHistory}
+                        onJump=${jumpHistory}
+                    />
                     ${
                         files.length > 0 &&
                         html`<div class="files">
@@ -1431,6 +1634,7 @@ export function Composer() {
                         placeholder=${placeholder}
                         onInput=${(event) => {
                             setBrowsing(null);
+                            setHistoryOpen(false);
                             update(event.currentTarget.value, event.currentTarget.selectionStart);
                         }}
                         onKeyDown=${onKey}

@@ -60,6 +60,7 @@ import {
     Thumb,
 } from "./ui.js";
 import { LessonCall, memoryAvailable } from "./sheets/memory.js";
+import { TranscriptNav } from "./transcript-nav.js";
 
 const REPORT = /^\[subagent (\S+) (answered|failed)([^\]]*)\]\s?([\s\S]*)$/;
 /** Where the next report starts, in a message of several that arrived together (`extensions/subagents.ts`). */
@@ -2524,6 +2525,7 @@ export function Transcript() {
         [view.order, view.entries, unloaded],
     );
     const rows = entries.filter(isRow);
+    const prompts = rows.filter((row) => row.kind === "user");
     const start = windowStart(rows, transcriptFrom);
     const [fetching, setFetching] = useState(false);
 
@@ -2824,8 +2826,9 @@ export function Transcript() {
     const source =
         conversation.forkedFrom && sessions.find((each) => each.id === conversation.forkedFrom.id);
 
-    return html`<main class="scroller" ref=${scroller} onScroll=${onScroll}>
-        <div class="transcript" data-part="transcript">
+    return html`<div class="chat-area">
+        <main class="scroller" ref=${scroller} onScroll=${onScroll}>
+            <div class="transcript" data-part="transcript">
             <${LinkedSessions} />
             ${
                 conversation.forkedFrom &&
@@ -2889,20 +2892,18 @@ export function Transcript() {
                     conversationId=${conversation.id}
                 />`
             }
-        </div>
-        ${
-            showJump &&
-            html`<button
-                class="jump"
-                aria-label="To the bottom"
-                onClick=${() => {
-                    stick.current = true;
-                    toBottom(scroller.current);
-                    setShowJump(false);
-                }}
-            >
-                <${Icon} name="down" />
-            </button>`
-        }
-    </main>`;
+            </div>
+        </main>
+        <${TranscriptNav}
+            scroller=${scroller}
+            prompts=${prompts}
+            showJump=${showJump}
+            onJump=${() => {
+                stick.current = true;
+                toBottom(scroller.current);
+                setShowJump(false);
+            }}
+            conversationId=${conversation.id}
+        />
+    </div>`;
 }
