@@ -75,6 +75,7 @@ import {
     Thumb,
 } from "./ui.js";
 import { LessonCall, memoryAvailable } from "./sheets/memory.js";
+import { TranscriptNav } from "./transcript-nav.js";
 
 const REPORT = /^\[subagent (\S+) (answered|failed)([^\]]*)\]\s?([\s\S]*)$/;
 /** Where the next report starts, in a message of several that arrived together (`extensions/subagents.ts`). */
@@ -3627,6 +3628,7 @@ export function Transcript() {
     // Built again only when the entries change: the app draws for every change to the store, and a streamed answer's
     // updates bring no new entries (`mergeView`).
     const rows = useMemo(() => entries.filter(isRow), [entries]);
+    const prompts = useMemo(() => rows.filter((row) => row.kind === "user"), [rows]);
     const start = useMemo(() => windowStart(rows, transcriptFrom), [rows, transcriptFrom]);
     const talk = collab();
     const from = useMemo(() => rowsBefore(rows, start, talk), [rows, start, talk]);
@@ -4084,12 +4086,13 @@ export function Transcript() {
             ? undefined
             : sessions.find((each) => each.id === conversation.id && each.failed === true)?.failure;
 
-    return html`<main class="scroller" ref=${scroller} onScroll=${onScroll}>
-        <div
-            class=${`transcript ${entrance.current} ${catching() ? "catching" : ""}`}
-            data-part="transcript"
-            ref=${column}
-        >
+    return html`<div class="chat-area">
+        <main class="scroller" ref=${scroller} onScroll=${onScroll}>
+            <div
+                class=${`transcript ${entrance.current} ${catching() ? "catching" : ""}`}
+                data-part="transcript"
+                ref=${column}
+            >
             <${LinkedSessions} />
             ${
                 conversation.forkedFrom &&
@@ -4156,20 +4159,18 @@ export function Transcript() {
                     conversationId=${conversation.id}
                 />`
             }
-        </div>
-        ${
-            showJump &&
-            html`<button
-                class="jump"
-                aria-label="To the bottom"
-                onClick=${() => {
-                    stick.current = true;
-                    toBottom(scroller.current);
-                    setShowJump(false);
-                }}
-            >
-                <${Icon} name="down" />
-            </button>`
-        }
-    </main>`;
+            </div>
+        </main>
+        <${TranscriptNav}
+            scroller=${scroller}
+            prompts=${prompts}
+            showJump=${showJump}
+            onJump=${() => {
+                stick.current = true;
+                toBottom(scroller.current);
+                setShowJump(false);
+            }}
+            conversationId=${conversation.id}
+        />
+    </div>`;
 }
