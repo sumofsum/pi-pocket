@@ -4105,7 +4105,7 @@ body.history-open .scroll-tools > * {
     grid-template-columns: auto minmax(0, 1fr);
     gap: 8px;
     align-items: start;
-    padding: 6px 4px 6px 6px;
+    padding: 4px 4px 4px 6px;
     border-radius: var(--r-control) 0 0 var(--r-control);
     text-align: left;
 }
@@ -4191,12 +4191,12 @@ body.history-open .scroll-tools > * {
 
 /* How long Pi took to answer this prompt, under its words at the right. */
 .message-history-took {
-    align-self: flex-end;
+    flex: none;
     display: inline-flex;
     align-items: center;
     gap: 3px;
     color: var(--faint);
-    font: 10px/1 var(--mono);
+    font: 9.5px/1.25 var(--mono);
     font-variant-numeric: tabular-nums;
 }
 
@@ -4205,28 +4205,33 @@ body.history-open .scroll-tools > * {
 }
 
 .message-history-only {
-    align-self: flex-start;
     color: var(--faint);
     font: 9.5px/1.2 var(--sans);
 }
 
+.message-history-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+}
+
+.message-history-meta-left {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
 .message-history-work {
-    align-self: flex-start;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 4px;
     color: var(--faint);
     font: 9.5px/1.25 var(--sans);
-}
-
-.message-history-model {
-    padding: 1px 5px;
-    border: 1px solid var(--hair-2);
-    border-radius: var(--r-pill);
-    color: var(--muted);
-    font: 9.5px var(--mono);
-    white-space: nowrap;
 }
 
 .message-history-outcome {
@@ -4294,6 +4299,17 @@ body.history-open .scroll-tools > * {
 }
 
 .message-history-jump {
+    margin: 0 6px 0 0;
+}
+
+/* The jump button's place while Pi works: the same size, with the working spinner in it. */
+.message-history-work-slot {
+    flex: none;
+    align-self: center;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
     margin: 0 6px 0 0;
 }
 
@@ -4423,6 +4439,7 @@ body.history-open .scroll-tools > * {
     .message-history-close,
     .message-history-copy,
     .message-history-jump,
+    .message-history-work-slot,
     .message-history-filter-button,
     .message-history-nav button {
         width: 36px;
