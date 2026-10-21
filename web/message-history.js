@@ -123,6 +123,57 @@ function replyDetail(message) {
     return parts.join(" · ");
 }
 
+function TurnMeta({ message }) {
+    const work = message.tools > 0 || message.files > 0;
+    const show = work || !message.pickable || message.took !== undefined || message.outcome;
+
+    if (!show) {
+        return null;
+    }
+
+    return html`<span class="message-history-meta">
+        <span class="message-history-meta-left">
+            ${
+                work &&
+                html`<span class="message-history-work">
+                    ${
+                        message.tools > 0 &&
+                        html`<span
+                            >${message.tools}tool${message.tools === 1 ? "" : "s"}</span
+                        >`
+                    }
+                    ${message.tools > 0 && message.files > 0 && " · "}
+                    ${
+                        message.files > 0 &&
+                        html`<span
+                            >${message.files}file${message.files === 1 ? "" : "s"}</span
+                        >`
+                    }
+                </span>`
+            }
+            ${!message.pickable && html`<span class="message-history-only">jump only</span>`}
+        </span>
+        ${
+            (message.took !== undefined || message.outcome) &&
+            html`<span
+                class=${`message-history-took ${message.outcome ? "with-outcome" : ""}`}
+                title=${replyDetail(message)}
+                aria-label=${replyDetail(message)}
+            >
+                ${
+                    message.outcome &&
+                    html`<span
+                        class=${`message-history-outcome ${outcomeClass(message.outcome)}`}
+                        >${outcomeLabel(message.outcome)}</span
+                    >`
+                }
+                ${message.took !== undefined && html`<${Icon} name="clock" size=${11} />`}
+                ${message.took !== undefined && elapsed(message.took)}
+            </span>`
+        }
+    </span>`;
+}
+
 /**
  * The message box's history popover: every prompt sent here, oldest first, with who sent it when others are here. The
  * first time it opens it starts at the newest (the bottom); after that it reopens where it was left. Tapping one of
@@ -351,18 +402,21 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
         : null;
     const shared = promptMessages.some((message) => !message.mine);
     const title = shared ? "Messages" : "Your messages";
-    const hint =
-        focused && !focused.pickable
-            ? !focused.mine
-                ? "Not yours · tap to jump"
-                : focused.text === ""
-                  ? focused.attachmentsLabel && focused.attachmentsLabel !== "No text"
-                      ? "Attachment only · tap to jump"
-                      : "No text · tap to jump"
-                  : "Jump only · tap to jump"
-            : shared
-              ? "Tap yours to put it back · ◎ to jump"
-              : "Tap to put it back · ◎ to jump";
+    const hint = focused?.working
+        ? focused.mine
+            ? "Pi is working · tap to put it back"
+            : "Pi is working · tap to jump"
+        : focused && !focused.pickable
+          ? !focused.mine
+              ? "Not yours · tap to jump"
+              : focused.text === ""
+                ? focused.attachmentsLabel && focused.attachmentsLabel !== "No text"
+                    ? "Attachment only · tap to jump"
+                    : "No text · tap to jump"
+                : "Jump only · tap to jump"
+          : shared
+            ? "Tap yours to put it back · ◎ to jump"
+            : "Tap to put it back · ◎ to jump";
     const countText = query === "" ? String(count) : `${shown.length} of ${count}`;
     const countTitle =
         query === ""
@@ -476,15 +530,6 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                                 >
                                     <span class="message-history-when">
                                         <${Clock} at=${message.at} />
-                                        ${
-                                            message.working &&
-                                            html`<span
-                                                class="message-history-working"
-                                                role="img"
-                                                aria-label="Pi is working"
-                                                title="Pi is working"
-                                            ></span>`
-                                        }
                                     </span>
                                     <span class="message-history-body">
                                         ${
@@ -526,62 +571,7 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                                                 class=${`message-history-words ${message.text ? "" : "placeholder"}`}
                                             >${message.text || message.attachmentsLabel}</span>
                                         </span>
-                                        ${
-                                            (message.tools > 0 ||
-                                                message.files > 0 ||
-                                                message.modelChanged) &&
-                                            html`<span class="message-history-work">
-                                                ${
-                                                    message.modelChanged &&
-                                                    html`<span
-                                                        class="message-history-model"
-                                                        title=${`${message.provider ? `${message.provider}/` : ""}${message.model}${message.thinking ? ` · thinking ${message.thinking}` : ""}`}
-                                                    >
-                                                        ${shortModel(message.model)}
-                                                    </span>`
-                                                }
-                                                ${
-                                                    message.tools > 0 &&
-                                                    html`<span
-                                                        >${message.tools}
-                                                        tool${message.tools === 1 ? "" : "s"}</span
-                                                    >`
-                                                }
-                                                ${message.tools > 0 && message.files > 0 && " · "}
-                                                ${
-                                                    message.files > 0 &&
-                                                    html`<span
-                                                        >${message.files}
-                                                        file${message.files === 1 ? "" : "s"}</span
-                                                    >`
-                                                }
-                                            </span>`
-                                        }
-                                        ${
-                                            !message.pickable &&
-                                            html`<span class="message-history-only">jump only</span>`
-                                        }
-                                        ${
-                                            (message.took !== undefined || message.outcome) &&
-                                            html`<span
-                                                class=${`message-history-took ${message.outcome ? "with-outcome" : ""}`}
-                                                title=${replyDetail(message)}
-                                                aria-label=${replyDetail(message)}
-                                            >
-                                                ${
-                                                    message.outcome &&
-                                                    html`<span
-                                                        class=${`message-history-outcome ${outcomeClass(message.outcome)}`}
-                                                        >${outcomeLabel(message.outcome)}</span
-                                                    >`
-                                                }
-                                                ${
-                                                    message.took !== undefined &&
-                                                    html`<${Icon} name="clock" size=${11} />`
-                                                }
-                                                ${message.took !== undefined && elapsed(message.took)}
-                                            </span>`
-                                        }
+                                        <${TurnMeta} message=${message} />
                                     </span>
                                 </button>
                                 ${
@@ -601,15 +591,26 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                                         />
                                     </button>`
                                 }
-                                <button
-                                    class="message-history-jump"
-                                    type="button"
-                                    title="Scroll to this message"
-                                    aria-label="Scroll to this message"
-                                    onClick=${() => onJump(message)}
-                                >
-                                    <${Icon} name="locate" size=${16} />
-                                </button>
+                                ${
+                                    message.working
+                                        ? html`<span class="message-history-work-slot">
+                                              <span
+                                                  class="message-history-working"
+                                                  role="img"
+                                                  aria-label="Pi is working"
+                                                  title="Pi is working"
+                                              ></span>
+                                          </span>`
+                                        : html`<button
+                                              class="message-history-jump"
+                                              type="button"
+                                              title="Scroll to this message"
+                                              aria-label="Scroll to this message"
+                                              onClick=${() => onJump(message)}
+                                          >
+                                              <${Icon} name="locate" size=${16} />
+                                          </button>`
+                                }
                             </div>`,
                         )
             }
