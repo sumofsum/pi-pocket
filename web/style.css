@@ -4011,6 +4011,44 @@ body.history-open .scroll-tools > * {
     line-height: 1.45;
 }
 
+.message-history-compaction {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 7px 10px;
+    border-top: 1px solid var(--hair);
+    border-bottom: 1px solid var(--hair);
+    color: var(--faint);
+    font-size: 10.5px;
+}
+
+.message-history-compaction-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.message-history-compaction-label .icon {
+    display: block;
+}
+
+.message-history-compaction-details summary {
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 10.5px;
+}
+
+.message-history-compaction-body {
+    max-height: 160px;
+    overflow-y: auto;
+    padding: 3px 0 2px;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
 .message-history-item {
     display: flex;
     align-items: stretch;
@@ -4170,6 +4208,35 @@ body.history-open .scroll-tools > * {
     align-self: flex-start;
     color: var(--faint);
     font: 9.5px/1.2 var(--sans);
+}
+
+.message-history-work {
+    align-self: flex-start;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    color: var(--faint);
+    font: 9.5px/1.25 var(--sans);
+}
+
+.message-history-model {
+    padding: 1px 5px;
+    border: 1px solid var(--hair-2);
+    border-radius: var(--r-pill);
+    color: var(--muted);
+    font: 9.5px var(--mono);
+    white-space: nowrap;
+}
+
+.message-history-outcome {
+    color: var(--faint);
+    font: 500 9.5px var(--sans);
+}
+
+.message-history-outcome.failed,
+.message-history-outcome.cutoff {
+    color: var(--warn);
 }
 
 /* The marks sit on the first line, centered in its height. */

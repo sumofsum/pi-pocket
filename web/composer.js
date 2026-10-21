@@ -449,7 +449,7 @@ export function Composer() {
     const meId = store.state.me?.id;
     const users = store.state.users;
 
-    /** Every prompt in the session, oldest first, with who sent it; your own without attachments or app-made prefixes. */
+    /** Every prompt in the session, oldest first, with who sent it and where the context was compacted; your own without attachments or app-made prefixes. */
     const sessionMessages = useMemo(() => {
         if (!meId) {
             return [];
@@ -493,10 +493,101 @@ export function Composer() {
         const lastUser = rows.findLast((entry) => entry.kind === "user");
         const workingId = view.live.busy ? lastUser?.id : undefined;
 
+        // What each turn did after its prompt: tools and files, model, outcome, and what its replies cost.
+        const turns = new Map();
+        let turn = null;
+
         for (const id of view.order) {
             const entry = view.entries.get(id);
 
-            if (!entry || !isRow(entry) || entry.kind !== "user") {
+            if (!entry) {
+                continue;
+            }
+
+            if (entry.kind === "user") {
+                turn = {
+                    tools: 0,
+                    files: new Set(),
+                    cost: 0,
+                    outcome: undefined,
+                    detail: undefined,
+                    model: undefined,
+                    provider: undefined,
+                    replies: 0,
+                };
+                turns.set(entry.id, turn);
+                continue;
+            }
+
+            if (!turn || entry.kind !== "assistant") {
+                continue;
+            }
+
+            turn.replies += 1;
+
+            if (typeof entry.model === "string") {
+                turn.model = entry.model;
+                turn.provider = entry.provider;
+            }
+
+            if (typeof entry.cost === "number" && Number.isFinite(entry.cost)) {
+                turn.cost += entry.cost;
+            }
+
+            for (const block of entry.blocks ?? []) {
+                if (block?.type !== "toolCall") {
+                    continue;
+                }
+
+                turn.tools += 1;
+                const path = block.args?.path;
+
+                if (typeof path === "string" && path.trim() !== "") {
+                    turn.files.add(path);
+                }
+            }
+
+            if (entry.stopReason === "error") {
+                turn.outcome = "failed";
+                turn.detail = entry.error;
+            } else if (entry.stopReason === "aborted") {
+                turn.outcome = "stopped";
+            } else if (entry.stopReason === "length") {
+                turn.outcome = "cut off";
+            }
+        }
+
+        for (const [id, info] of turns) {
+            if (info.replies === 0 && !(view.live.busy && id === workingId)) {
+                info.outcome = "stopped";
+            }
+        }
+
+        const currentModel = view.agent?.model?.modelId;
+        const currentProvider = view.agent?.model?.provider;
+        const thinking =
+            view.agent?.reasoning && view.agent?.thinkingLevel !== "off"
+                ? view.agent.thinkingLevel
+                : undefined;
+
+        for (const id of view.order) {
+            const entry = view.entries.get(id);
+
+            if (!entry) {
+                continue;
+            }
+
+            if (entry.kind === "compaction") {
+                found.push({
+                    id: entry.id,
+                    at: entry.at,
+                    divider: true,
+                    summary: entry.summary ?? "",
+                });
+                continue;
+            }
+
+            if (!isRow(entry) || entry.kind !== "user") {
                 continue;
             }
 
@@ -535,6 +626,8 @@ export function Composer() {
                         ? "File attached"
                         : "No text";
 
+            const info = turns.get(entry.id);
+
             found.push({
                 id: entry.id,
                 at: entry.at,
@@ -547,6 +640,18 @@ export function Composer() {
                 file,
                 took: finished.get(entry.id),
                 working: workingId !== undefined && entry.id === workingId,
+                tools: info?.tools ?? 0,
+                files: info?.files.size ?? 0,
+                cost: info?.cost ?? 0,
+                outcome: info?.outcome,
+                outcomeDetail: info?.detail,
+                model: info?.model,
+                provider: info?.provider,
+                modelChanged: Boolean(
+                    info?.model &&
+                    (info.model !== currentModel || info.provider !== currentProvider),
+                ),
+                thinking,
             });
         }
 
@@ -558,6 +663,7 @@ export function Composer() {
         view.live.busy,
         meId,
         users,
+        view.agent,
         view.conversation?.kind,
     ]);
 
