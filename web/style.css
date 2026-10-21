@@ -4291,19 +4291,29 @@ body.history-open .scroll-tools > * {
     height: 30px;
     display: grid;
     place-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    border-radius: 8px;
+    color: var(--muted);
+    transition:
+        background-color var(--t-hover) var(--ease-out),
+        color var(--t-hover) var(--ease-out);
     margin: 0 6px 0 0;
 }
 
 @media (hover: hover) {
     .message-history-copy:hover,
-    .message-history-jump:hover {
+    .message-history-jump:hover,
+    .message-history-work-slot:hover {
         background: var(--accent-soft);
         color: var(--accent);
     }
 }
 
 .message-history-copy:active,
-.message-history-jump:active {
+.message-history-jump:active,
+.message-history-work-slot:active {
     color: var(--accent);
 }
 
