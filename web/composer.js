@@ -566,8 +566,6 @@ export function Composer() {
             }
         }
 
-        const currentModel = view.agent?.model?.modelId;
-        const currentProvider = view.agent?.model?.provider;
         const thinking =
             view.agent?.reasoning && view.agent?.thinkingLevel !== "off"
                 ? view.agent.thinkingLevel
@@ -650,10 +648,6 @@ export function Composer() {
                 outcomeDetail: info?.detail,
                 model: info?.model,
                 provider: info?.provider,
-                modelChanged: Boolean(
-                    info?.model &&
-                    (info.model !== currentModel || info.provider !== currentProvider),
-                ),
                 thinking,
             });
         }
