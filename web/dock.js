@@ -64,7 +64,12 @@ function shared(dock) {
         (outer(wrap) - height(dock));
 
     for (const child of pane.children) {
-        if (child !== wrap && !child.classList.contains("scroller")) {
+        // The conversation is not room to take away, whether it is the scroller itself or a wrapper around it.
+        if (
+            child !== wrap &&
+            !child.classList.contains("scroller") &&
+            !child.querySelector(".scroller")
+        ) {
             room -= outer(child);
         }
     }
