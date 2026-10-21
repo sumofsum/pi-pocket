@@ -53,6 +53,8 @@ export type ClientEntry =
           error?: string;
           model?: string;
           provider?: string;
+          /** What this response cost, in dollars, from its provider usage. */
+          cost?: number;
           at?: number;
           partial?: boolean;
       }
@@ -475,6 +477,8 @@ export function projectEntry(entry: EntryRecord, full = false): ClientEntry | un
                 typeof message?.stopReason === "string" ? message.stopReason : undefined;
             const error =
                 typeof message?.errorMessage === "string" ? message.errorMessage : undefined;
+            const usage = message?.usage as UsageNumbers | undefined;
+            const cost = usage?.cost?.total;
 
             return {
                 id,
@@ -484,6 +488,7 @@ export function projectEntry(entry: EntryRecord, full = false): ClientEntry | un
                 ...(error === undefined ? {} : { error }),
                 ...(typeof message?.model === "string" ? { model: message.model } : {}),
                 ...(typeof message?.provider === "string" ? { provider: message.provider } : {}),
+                ...(typeof cost === "number" && Number.isFinite(cost) ? { cost } : {}),
                 ...madeAt(message),
             };
         }
