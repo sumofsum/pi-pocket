@@ -4215,6 +4215,10 @@ body.history-open .scroll-tools > * {
     font: 9.5px/1.25 var(--sans);
 }
 
+.message-history-counts {
+    white-space: nowrap;
+}
+
 .message-history-outcome {
     color: var(--faint);
     font: 500 9.5px var(--sans);
@@ -4258,6 +4262,13 @@ body.history-open .scroll-tools > * {
 .message-history-words.placeholder {
     color: var(--faint);
     font-style: italic;
+}
+
+.message-history-hit {
+    padding: 0 1px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    color: inherit;
 }
 
 .message-history-copy,
