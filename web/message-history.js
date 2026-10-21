@@ -4,18 +4,27 @@ import { fromServer } from "./seen.js";
 import { notify } from "./store.js";
 import { copyText, html, Icon } from "./ui.js";
 
-/** When a prompt was sent: "10:42" today, "Oct 3 10:42" before. */
+/** When a prompt was sent: the time, and the date on its own line when it is not today. */
 function clock(at) {
     if (!at) {
-        return "";
+        return { date: "", time: "" };
     }
 
     const date = new Date(fromServer(at));
     const time = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
     return date.toDateString() === new Date().toDateString()
-        ? time
-        : `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
+        ? { date: "", time }
+        : { date: date.toLocaleDateString([], { month: "short", day: "numeric" }), time };
+}
+
+function Clock({ at }) {
+    const { date, time } = clock(at);
+
+    return html`<span class="message-history-time">
+        ${date && html`<span class="message-history-date">${date}</span>`}
+        <span>${time}</span>
+    </span>`;
 }
 
 /** How long Pi took to answer: 0.4s, 1.2s, 12s, 2m 04s. */
@@ -390,7 +399,7 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                                         message.pickable ? onPick(message) : onJump(message)}
                                 >
                                     <span class="message-history-when">
-                                        <span class="message-history-time">${clock(message.at)}</span>
+                                        <${Clock} at=${message.at} />
                                         ${
                                             message.working &&
                                             html`<span
