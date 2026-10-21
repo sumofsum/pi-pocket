@@ -593,14 +593,20 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                                 }
                                 ${
                                     message.working
-                                        ? html`<span class="message-history-work-slot">
+                                        ? html`<button
+                                              class="message-history-work-slot"
+                                              type="button"
+                                              title="Scroll to this message"
+                                              aria-label="Scroll to this message"
+                                              onClick=${() => onJump(message)}
+                                          >
                                               <span
                                                   class="message-history-working"
                                                   role="img"
                                                   aria-label="Pi is working"
                                                   title="Pi is working"
                                               ></span>
-                                          </span>`
+                                          </button>`
                                         : html`<button
                                               class="message-history-jump"
                                               type="button"
