@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { fromServer } from "./seen.js";
 import { notify } from "./store.js";
-import { copyText, html, Icon, Marked } from "./ui.js";
+import { APPLE, copyText, html, Icon, Marked } from "./ui.js";
 
 /** When a prompt was sent: the time, and the date on its own line when it is not today. */
 function clock(at) {
@@ -123,9 +123,30 @@ function replyDetail(message) {
     return parts.join(" · ");
 }
 
-function TurnMeta({ message }) {
+function TurnMeta({ message, open }) {
+    const [now, setNow] = useState(() => Date.now());
+
+    // While the row works, its clock counts from the prompt: one tick a second, only while the list shows it.
+    useEffect(() => {
+        if (!open || !message.working) {
+            return undefined;
+        }
+
+        setNow(Date.now());
+
+        const timer = setInterval(() => setNow(Date.now()), 1000);
+
+        return () => clearInterval(timer);
+    }, [open, message.working]);
+
+    const started = message.at ? fromServer(message.at) : NaN;
+    const live =
+        open && message.working && Number.isFinite(started)
+            ? Math.max(0, now - started)
+            : undefined;
+    const took = message.took ?? live;
     const work = message.tools > 0 || message.files > 0;
-    const show = work || !message.pickable || message.took !== undefined || message.outcome;
+    const show = work || !message.pickable || took !== undefined || message.outcome;
 
     if (!show) {
         return null;
@@ -154,7 +175,7 @@ function TurnMeta({ message }) {
             ${!message.pickable && html`<span class="message-history-only">jump only</span>`}
         </span>
         ${
-            (message.took !== undefined || message.outcome) &&
+            (took !== undefined || message.outcome) &&
             html`<span
                 class=${`message-history-took ${message.outcome ? "with-outcome" : ""}`}
                 title=${replyDetail(message)}
@@ -167,8 +188,8 @@ function TurnMeta({ message }) {
                         >${outcomeLabel(message.outcome)}</span
                     >`
                 }
-                ${message.took !== undefined && html`<${Icon} name="clock" size=${11} />`}
-                ${message.took !== undefined && elapsed(message.took)}
+                ${took !== undefined && html`<${Icon} name="clock" size=${11} />`}
+                ${took !== undefined && elapsed(took)}
             </span>`
         }
     </span>`;
@@ -264,7 +285,11 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
             }
 
             saved.current = element.scrollTop;
-            row.querySelector(".message-history-pick")?.focus({ preventScroll: true });
+
+            // Keep typing in the filter while its arrows move the highlight.
+            if (document.activeElement !== filterInput.current) {
+                row.querySelector(".message-history-pick")?.focus({ preventScroll: true });
+            }
 
             const frame = requestAnimationFrame(() => {
                 if (last) {
@@ -332,12 +357,32 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
             close.current(true);
         };
 
+        // Find in the open history: focus the filter before the app's session find, or the browser's find, sees it.
+        const find = (event) => {
+            if (
+                event.isComposing ||
+                event.altKey ||
+                event.shiftKey ||
+                !(event.ctrlKey || event.metaKey) ||
+                event.key.toLowerCase() !== "f"
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            setFilterOpen(true);
+            filterInput.current?.focus();
+        };
+
         document.addEventListener("pointerdown", outside);
         document.addEventListener("keydown", escape, true);
+        document.addEventListener("keydown", find, true);
 
         return () => {
             document.removeEventListener("pointerdown", outside);
             document.removeEventListener("keydown", escape, true);
+            document.removeEventListener("keydown", find, true);
         };
     }, [open]);
 
@@ -451,14 +496,93 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
         }
     };
 
+    const jumpTo = (message) => {
+        if (message) {
+            document.dispatchEvent(new CustomEvent("pocket:jump-prompt", { detail: message.id }));
+        }
+    };
+
     const step = (by) => {
         const target =
             shownAt === -1 ? (by > 0 ? shown[0] : shown[shown.length - 1]) : shown[shownAt + by];
 
-        if (target) {
-            document.dispatchEvent(new CustomEvent("pocket:jump-prompt", { detail: target.id }));
-        }
+        jumpTo(target);
     };
+
+    // While the list is open: Up/Down step, Home/End go to the ends, Ctrl+Up/Down page it. They work from the
+    // filter too, which keeps the focus while the highlight moves.
+    useEffect(() => {
+        if (!open) {
+            return undefined;
+        }
+
+        const keys = (event) => {
+            if (event.isComposing) {
+                return;
+            }
+
+            const key = event.key;
+            const modified = event.altKey || event.ctrlKey || event.metaKey || event.shiftKey;
+
+            if (
+                ((event.ctrlKey || event.metaKey) &&
+                    !event.altKey &&
+                    !event.shiftKey &&
+                    (key === "ArrowUp" || key === "ArrowDown")) ||
+                (!modified && (key === "PageUp" || key === "PageDown"))
+            ) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const element = list.current;
+                let page = 1;
+
+                if (element) {
+                    const box = element.getBoundingClientRect();
+                    const visible = [...element.querySelectorAll(".message-history-item")].filter(
+                        (row) => {
+                            const rect = row.getBoundingClientRect();
+
+                            return rect.top >= box.top - 1 && rect.top < box.bottom;
+                        },
+                    ).length;
+
+                    page = Math.max(1, visible);
+                }
+
+                const up = key === "ArrowUp" || key === "PageUp";
+                const by = up ? -page : page;
+                const index =
+                    shownAt === -1
+                        ? by > 0
+                            ? 0
+                            : shown.length - 1
+                        : Math.min(shown.length - 1, Math.max(0, shownAt + by));
+
+                jumpTo(shown[index]);
+
+                return;
+            }
+
+            if (!modified && (key === "ArrowUp" || key === "ArrowDown")) {
+                event.preventDefault();
+                event.stopPropagation();
+                step(key === "ArrowUp" ? -1 : 1);
+
+                return;
+            }
+
+            if (!modified && (key === "Home" || key === "End")) {
+                event.preventDefault();
+                event.stopPropagation();
+                jumpTo(key === "Home" ? shown[0] : shown[shown.length - 1]);
+            }
+        };
+
+        document.addEventListener("keydown", keys, true);
+
+        return () => document.removeEventListener("keydown", keys, true);
+    }, [open, step, jumpTo, shown]);
 
     return html`<div
         class="message-history"
@@ -571,7 +695,7 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                                                 class=${`message-history-words ${message.text ? "" : "placeholder"}`}
                                             >${message.text || message.attachmentsLabel}</span>
                                         </span>
-                                        <${TurnMeta} message=${message} />
+                                        <${TurnMeta} message=${message} open=${open} />
                                     </span>
                                 </button>
                                 ${
@@ -634,6 +758,23 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                           autocomplete="off"
                           spellcheck="false"
                           onKeyDown=${(event) => {
+                              if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+
+                                  const message = shownAt === -1 ? shown[0] : shown[shownAt];
+
+                                  if (message) {
+                                      if (message.pickable) {
+                                          onPick(message);
+                                      } else {
+                                          onJump(message);
+                                      }
+                                  }
+
+                                  return;
+                              }
+
                               if (event.key !== "Escape") {
                                   return;
                               }
@@ -677,7 +818,7 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                         class="message-history-filter-button"
                         ref=${filterButton}
                         type="button"
-                        title=${filterOpen ? "Hide filter" : "Filter messages"}
+                        title=${filterOpen ? "Hide filter" : `Filter messages (${APPLE ? "⌘" : "Ctrl"}+F)`}
                         aria-label="Filter messages"
                         aria-pressed=${filterOpen}
                         onClick=${toggleFilter}
