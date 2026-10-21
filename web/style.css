@@ -4073,21 +4073,24 @@ body.history-open .scroll-tools > * {
 }
 
 .message-history-when {
+    width: 48px;
     align-self: stretch;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: flex-end;
     gap: 4px;
 }
 
 .message-history-time {
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
     gap: 1px;
     padding-top: 2px;
     color: var(--faint);
     font: 10.5px/1.35 var(--mono);
+    text-align: right;
     white-space: nowrap;
 }
 
