@@ -72,6 +72,61 @@ function elapsed(ms) {
     return `${Math.floor(seconds / 3600)}h ${String(Math.floor(seconds / 60) % 60).padStart(2, "0")}m`;
 }
 
+/** The working clock counts whole seconds; the final took keeps its precise size. */
+function liveElapsed(ms) {
+    if (!(ms >= 0)) {
+        return "";
+    }
+
+    const seconds = Math.floor(ms / 1000);
+
+    if (seconds < 1) {
+        return "<1s";
+    }
+
+    if (seconds < 60) {
+        return `${seconds}s`;
+    }
+
+    if (seconds < 3600) {
+        return `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`;
+    }
+
+    return `${Math.floor(seconds / 3600)}h ${String(Math.floor(seconds / 60) % 60).padStart(2, "0")}m`;
+}
+
+/** The filter's matches inside a row's words or author, with the rest of the text as it was. */
+function Highlighted({ text, query }) {
+    const value = String(text ?? "");
+
+    if (!query) {
+        return value;
+    }
+
+    const lower = value.toLowerCase();
+    const parts = [];
+    let start = 0;
+    let at = lower.indexOf(query);
+
+    while (at !== -1) {
+        if (at > start) {
+            parts.push(value.slice(start, at));
+        }
+
+        parts.push(
+            html`<mark class="message-history-hit">${value.slice(at, at + query.length)}</mark>`,
+        );
+        start = at + query.length;
+        at = lower.indexOf(query, start);
+    }
+
+    if (start < value.length) {
+        parts.push(value.slice(start));
+    }
+
+    return parts;
+}
+
 const OUTCOME_LABELS = { stopped: "Stopped", failed: "Failed", "cut off": "Cut off" };
 
 function outcomeLabel(outcome) {
@@ -144,6 +199,7 @@ function TurnMeta({ message, open }) {
         open && message.working && Number.isFinite(started)
             ? Math.max(0, now - started)
             : undefined;
+    const final = message.took !== undefined;
     const took = message.took ?? live;
     const work = message.tools > 0 || message.files > 0;
     const show = work || !message.pickable || took !== undefined || message.outcome;
@@ -157,19 +213,21 @@ function TurnMeta({ message, open }) {
             ${
                 work &&
                 html`<span class="message-history-work">
-                    ${
-                        message.tools > 0 &&
-                        html`<span
-                            >${message.tools}tool${message.tools === 1 ? "" : "s"}</span
-                        >`
-                    }
-                    ${message.tools > 0 && message.files > 0 && " · "}
-                    ${
-                        message.files > 0 &&
-                        html`<span
-                            >${message.files}file${message.files === 1 ? "" : "s"}</span
-                        >`
-                    }
+                    <span class="message-history-counts">
+                        ${
+                            message.tools > 0 &&
+                            html`<span
+                                >${message.tools}tool${message.tools === 1 ? "" : "s"}</span
+                            >`
+                        }
+                        ${message.tools > 0 && message.files > 0 && " · "}
+                        ${
+                            message.files > 0 &&
+                            html`<span
+                                >${message.files}file${message.files === 1 ? "" : "s"}</span
+                            >`
+                        }
+                    </span>
                 </span>`
             }
             ${!message.pickable && html`<span class="message-history-only">jump only</span>`}
@@ -189,7 +247,7 @@ function TurnMeta({ message, open }) {
                     >`
                 }
                 ${took !== undefined && html`<${Icon} name="clock" size=${11} />`}
-                ${took !== undefined && elapsed(took)}
+                ${took !== undefined && (final ? elapsed(took) : liveElapsed(took))}
             </span>`
         }
     </span>`;
@@ -661,7 +719,12 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                                             html`<span
                                                 class="message-history-author"
                                                 data-mine=${message.mine ? "" : undefined}
-                                            >${message.author}</span>`
+                                            >
+                                                <${Highlighted}
+                                                    text=${message.author}
+                                                    query=${query}
+                                                />
+                                            </span>`
                                         }
                                         <span class="message-history-text">
                                             ${
@@ -693,7 +756,12 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                                             }
                                             <span
                                                 class=${`message-history-words ${message.text ? "" : "placeholder"}`}
-                                            >${message.text || message.attachmentsLabel}</span>
+                                            >
+                                                <${Highlighted}
+                                                    text=${message.text || message.attachmentsLabel}
+                                                    query=${query}
+                                                />
+                                            </span>
                                         </span>
                                         <${TurnMeta} message=${message} open=${open} />
                                     </span>
