@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { fromServer } from "./seen.js";
 import { notify } from "./store.js";
-import { copyText, html, Icon } from "./ui.js";
+import { copyText, html, Icon, Marked } from "./ui.js";
 
 /** When a prompt was sent: the time, and the date on its own line when it is not today. */
 function clock(at) {
@@ -25,6 +25,24 @@ function Clock({ at }) {
         ${date && html`<span class="message-history-date">${date}</span>`}
         <span>${time}</span>
     </span>`;
+}
+
+function Compaction({ message }) {
+    return html`<div class="message-history-compaction" role="listitem">
+        <span class="message-history-compaction-label">
+            <${Icon} name="compact" size=${13} />
+            Context compacted
+        </span>
+        ${
+            message.summary &&
+            html`<details class="message-history-compaction-details">
+                <summary>Summary</summary>
+                <div class="message-history-compaction-body">
+                    <${Marked} text=${message.summary} />
+                </div>
+            </details>`
+        }
+    </div>`;
 }
 
 /** How long Pi took to answer: 0.4s, 1.2s, 12s, 2m 04s. */
@@ -52,6 +70,57 @@ function elapsed(ms) {
     }
 
     return `${Math.floor(seconds / 3600)}h ${String(Math.floor(seconds / 60) % 60).padStart(2, "0")}m`;
+}
+
+const OUTCOME_LABELS = { stopped: "Stopped", failed: "Failed", "cut off": "Cut off" };
+
+function outcomeLabel(outcome) {
+    return OUTCOME_LABELS[outcome] ?? outcome;
+}
+
+function outcomeClass(outcome) {
+    return outcome === "failed" || outcome === "cut off" ? outcome.replace(" ", "") : "stopped";
+}
+
+function shortModel(model) {
+    return String(model ?? "").replace(/-\d{8}$/, "");
+}
+
+/** The row's hover/long-press detail: outcome, duration, cost, work, and model. */
+function replyDetail(message) {
+    const parts = [];
+
+    if (message.outcome) {
+        parts.push(
+            message.outcomeDetail
+                ? `${outcomeLabel(message.outcome)}: ${message.outcomeDetail}`
+                : outcomeLabel(message.outcome),
+        );
+    }
+
+    if (message.took !== undefined) {
+        parts.push(`Pi took ${elapsed(message.took)} to reply`);
+    }
+
+    if (message.cost > 0) {
+        parts.push(`$${message.cost.toFixed(3)} this turn`);
+    }
+
+    if (message.tools > 0) {
+        parts.push(`${message.tools} tool${message.tools === 1 ? "" : "s"}`);
+    }
+
+    if (message.files > 0) {
+        parts.push(`${message.files} file${message.files === 1 ? "" : "s"}`);
+    }
+
+    if (message.model) {
+        parts.push(
+            `${message.provider ? `${message.provider}/` : ""}${shortModel(message.model)}${message.thinking ? ` · thinking ${message.thinking}` : ""}`,
+        );
+    }
+
+    return parts.join(" · ");
 }
 
 /**
@@ -131,8 +200,8 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
             first.current = false;
 
             // The newest prompt is the bottom, not the middle: leave no half row short of it.
-            const last =
-                messages.length > 0 && String(messages[messages.length - 1].id) === String(focusId);
+            const lastPrompt = messages.findLast((message) => !message.divider);
+            const last = lastPrompt !== undefined && String(lastPrompt.id) === String(focusId);
 
             if (last) {
                 element.scrollTop = element.scrollHeight;
@@ -263,12 +332,13 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
         );
     };
 
-    const count = messages.length;
+    const promptMessages = messages.filter((message) => !message.divider);
+    const count = promptMessages.length;
     const query = filter.trim().toLowerCase();
     const shown =
         query === ""
-            ? messages
-            : messages.filter((message) =>
+            ? promptMessages
+            : promptMessages.filter((message) =>
                   [message.text, message.author, message.attachmentsLabel].some((part) =>
                       part?.toLowerCase().includes(query),
                   ),
@@ -277,9 +347,9 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
     const canPrev = shown.length > 0 && (shownAt === -1 || shownAt > 0);
     const canNext = shown.length > 0 && (shownAt === -1 || shownAt < shown.length - 1);
     const focused = focusId
-        ? messages.find((message) => String(message.id) === String(focusId))
+        ? promptMessages.find((message) => String(message.id) === String(focusId))
         : null;
-    const shared = messages.some((message) => !message.mine);
+    const shared = promptMessages.some((message) => !message.mine);
     const title = shared ? "Messages" : "Your messages";
     const hint =
         focused && !focused.pickable
@@ -298,6 +368,7 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
         query === ""
             ? `${count} ${count === 1 ? "message" : "messages"}`
             : `${shown.length} of ${count} messages`;
+    const rows = query === "" ? messages : shown;
 
     useEffect(() => {
         if (!open || query === "") {
@@ -371,8 +442,13 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                       </p>`
                     : shown.length === 0
                       ? html`<p class="message-history-empty">No messages match.</p>`
-                      : shown.map(
-                            (message) => html`<div
+                      : rows.map((message) =>
+                            message.divider
+                                ? html`<${Compaction}
+                                      key=${message.id}
+                                      message=${message}
+                                  />`
+                                : html`<div
                                 class=${[
                                     "message-history-item",
                                     String(message.id) === String(focusId) ? "current" : "",
@@ -451,18 +527,59 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                                             >${message.text || message.attachmentsLabel}</span>
                                         </span>
                                         ${
+                                            (message.tools > 0 ||
+                                                message.files > 0 ||
+                                                message.modelChanged) &&
+                                            html`<span class="message-history-work">
+                                                ${
+                                                    message.modelChanged &&
+                                                    html`<span
+                                                        class="message-history-model"
+                                                        title=${`${message.provider ? `${message.provider}/` : ""}${message.model}${message.thinking ? ` · thinking ${message.thinking}` : ""}`}
+                                                    >
+                                                        ${shortModel(message.model)}
+                                                    </span>`
+                                                }
+                                                ${
+                                                    message.tools > 0 &&
+                                                    html`<span
+                                                        >${message.tools}
+                                                        tool${message.tools === 1 ? "" : "s"}</span
+                                                    >`
+                                                }
+                                                ${message.tools > 0 && message.files > 0 && " · "}
+                                                ${
+                                                    message.files > 0 &&
+                                                    html`<span
+                                                        >${message.files}
+                                                        file${message.files === 1 ? "" : "s"}</span
+                                                    >`
+                                                }
+                                            </span>`
+                                        }
+                                        ${
                                             !message.pickable &&
                                             html`<span class="message-history-only">jump only</span>`
                                         }
                                         ${
-                                            message.took !== undefined &&
+                                            (message.took !== undefined || message.outcome) &&
                                             html`<span
-                                                class="message-history-took"
-                                                title=${`Pi took ${elapsed(message.took)} to reply`}
-                                                aria-label=${`Pi took ${elapsed(message.took)} to reply`}
+                                                class=${`message-history-took ${message.outcome ? "with-outcome" : ""}`}
+                                                title=${replyDetail(message)}
+                                                aria-label=${replyDetail(message)}
                                             >
-                                                <${Icon} name="clock" size=${11} />
-                                                ${elapsed(message.took)}
+                                                ${
+                                                    message.outcome &&
+                                                    html`<span
+                                                        class=${`message-history-outcome ${outcomeClass(message.outcome)}`}
+                                                        >${outcomeLabel(message.outcome)}</span
+                                                    >`
+                                                }
+                                                ${
+                                                    message.took !== undefined &&
+                                                    html`<${Icon} name="clock" size=${11} />`
+                                                }
+                                                ${message.took !== undefined && elapsed(message.took)}
                                             </span>`
                                         }
                                     </span>
