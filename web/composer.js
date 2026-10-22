@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { Avatar } from "./avatar.js";
 import { boxKey, keyBox } from "./box-keys.js";
-import { chatUnread, TypingLine } from "./chat.js";
+import { chatUnread, jumpToEntry, TypingLine } from "./chat.js";
 import {
     loadTemplates,
     parseCommand,
@@ -43,6 +43,7 @@ import {
     Icon,
     Marked,
     modelLabel,
+    plainText,
     Spinner,
     splitAttachments,
 } from "./ui.js";
@@ -66,6 +67,71 @@ function ParentSessionButton() {
         <${Icon} name="back" size=${16} />
         <span>Back to main session</span>
         <span class="parent-session-title">${parent.title}</span>
+    </button>`;
+}
+
+/**
+ * The last message a person sent, set right above the box: what the reply above is answering, so you can tell what you
+ * asked without scrolling back. Its newlines join into one flow, which takes two lines at most.
+ */
+function LastSentLine({ hidden }) {
+    const { view, me, users } = store.state;
+    const last = useMemo(() => {
+        const rows = view.order
+            .map((id) => view.entries.get(id))
+            .filter((entry) => entry && isRow(entry));
+
+        for (let at = rows.length - 1; at >= 0; at--) {
+            const entry = rows[at];
+
+            if (entry.kind !== "user") {
+                continue;
+            }
+
+            const author = view.authors?.[entry.id];
+
+            // A prompt Pi did not get from a person (a subagent's, a linked session's, the app's own) stands for the
+            // newest turn: an older prompt of your own is not what the reply answers.
+            if (author === undefined) {
+                return null;
+            }
+
+            let written = plainText(splitAttachments(entry.text)[0]).replace(/\s+/g, " ").trim();
+            const via = /^\[via [^\]\n]{1,300}\] /.exec(written);
+
+            if (via) {
+                written = written.slice(via[0].length);
+            }
+
+            if (written.startsWith("[scheduled] ")) {
+                written = written.slice("[scheduled] ".length);
+            }
+
+            if (written === "") {
+                written = entry.images > 0 ? "An image" : "An attachment";
+            }
+
+            const mine = author === me?.id;
+            const name = mine ? "" : (users.find((user) => user.id === author)?.name ?? "Someone");
+
+            return { id: entry.id, mine, text: name ? `${name}: ${written}` : written };
+        }
+
+        return null;
+    }, [view.order, view.entries, view.authors, me?.id, users]);
+
+    if (hidden || !last) {
+        return null;
+    }
+
+    return html`<button
+        class="last-sent"
+        title="Go to this message"
+        aria-label=${`${last.mine ? "Your last message" : "Last message"}: ${last.text}. Go to it.`}
+        onClick=${() => jumpToEntry(last.id, { top: true })}
+    >
+        <${Icon} name="corner-down-right" size=${14} stroke=${1.8} />
+        <span class="last-sent-text">${last.text}</span>
     </button>`;
 }
 
@@ -1505,6 +1571,7 @@ export function Composer() {
             <${WatchBar} />
             <${SubagentsBar} />
             <${TrustBar} />
+            <${LastSentLine} hidden=${text.trim() !== "" || searching} />
         </div>
         <${ParentSessionButton} />
         ${

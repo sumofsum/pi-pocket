@@ -3115,6 +3115,53 @@ body.history-open .scroll-tools > * {
     gap: 0.5rem;
 }
 
+/* The last message a person sent, right above the box: what the reply is answering. Its newlines join into one flow,
+ * which takes two lines at most and then an ellipsis, in the muted colour so it stays quieter than a message. */
+.last-sent {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+    width: 100%;
+    padding: 2px calc(16px * var(--space-x)) 6px;
+    margin-bottom: 2px;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.35;
+    text-align: left;
+}
+
+.last-sent .icon {
+    flex: none;
+    margin-top: 0.1rem;
+    opacity: 0.75;
+}
+
+.last-sent .last-sent-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+@media (hover: hover) {
+    .last-sent:hover {
+        color: var(--body);
+    }
+
+    .last-sent:hover .icon {
+        opacity: 1;
+    }
+}
+
+@media (max-width: 699px) {
+    .last-sent {
+        padding-inline: calc(13px * var(--space-x));
+    }
+}
+
 /* Messages waiting for Pi: a few rows' height at most, so the conversation stays in view; more scroll inside. */
 .inbox {
     display: flex;

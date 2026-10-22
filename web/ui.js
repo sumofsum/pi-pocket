@@ -940,6 +940,8 @@ const ICONS = {
     photo: "M4 4h16v16H4zM4 17l5-5 4 4 2-2 5 5M9 9h.01",
     diff: "M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8zM14 3v5h5M9 11.5h6M12 8.5v6M9 17.5h6",
     back: "M15 18l-6-6 6-6",
+    // A line turning down and right: the message a reply answers.
+    "corner-down-right": "M4 4v7a4 4 0 004 4h12M15 10l5 5-5 5",
     clock: "M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2",
     history: "M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8M3 3v5h5M12 7v5l4 2",
     // A timer: a stopwatch with its button and hand.
