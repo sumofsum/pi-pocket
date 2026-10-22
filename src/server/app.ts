@@ -44,6 +44,7 @@ import { CodingTools } from "@earendil-works/pi-durable/tools";
 import { Alerts } from "./alerts.ts";
 import { Attribution, type Missing } from "./attribution.ts";
 import { Browsers } from "./browser.ts";
+import { buildInfo } from "./build-info.ts";
 import type { BrowserState } from "./browser/page.ts";
 import { Collab, REACTIONS } from "./collab.ts";
 import { Commands } from "./commands.ts";
@@ -1857,6 +1858,7 @@ export class PocketApp {
             guard: await this.guardStatus(),
             server: {
                 pocketVersion: pocketVersion(),
+                ...(await buildInfo()),
                 supervised: this.supervised,
                 startedAt: this.startedAt,
                 home: homedir(),

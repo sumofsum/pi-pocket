@@ -1538,9 +1538,23 @@ function Rail({ foldable = false, folded = false }) {
             html`<span
                 class="rail-version"
                 data-part="rail-version"
-                title=${`Pi Pocket ${store.state.server.pocketVersion}`}
+                title=${[
+                    `Pi Pocket ${store.state.server.pocketVersion}`,
+                    store.state.server.branch,
+                    store.state.server.commit,
+                ]
+                    .filter(Boolean)
+                    .join(" · ")}
             >
-                v${store.state.server.pocketVersion}
+                <span>v${store.state.server.pocketVersion}</span>
+                ${
+                    store.state.server.branch &&
+                    html`<span class="rail-build">${store.state.server.branch}</span>`
+                }
+                ${
+                    store.state.server.commit &&
+                    html`<span class="rail-build">${store.state.server.commit}</span>`
+                }
             </span>`
         }
     </nav>`;
