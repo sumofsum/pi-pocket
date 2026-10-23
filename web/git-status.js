@@ -1,5 +1,5 @@
 // The Git status panel: every folder the sessions on screen work in, grouped by folder. Each row says its branch and
-// newest commit, and what is uncommitted; opening one shows the last three commits and the changed files. A Commit
+// newest commit, and what is uncommitted; opening one shows its latest ten commits and the changed files. A Commit
 // button starts a new session in that folder and asks Pi to commit the changes. Alt+G, the rail's git mark, or Esc.
 import { useEffect, useRef, useState } from "preact/hooks";
 import { folderColor } from "./avatar.js";
@@ -251,7 +251,7 @@ function Folder({ folder, open, onToggle, spawning, setSpawning }) {
             ${
                 repo
                     ? html`<div class="git-section">
-                          <div class="git-section-label">Last 3 commits</div>
+                          <div class="git-section-label">Last 10 commits</div>
                           <div class="git-commits">
                               ${
                                   repo.commits.length === 0
