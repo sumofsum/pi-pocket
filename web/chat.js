@@ -147,7 +147,8 @@ export function jumpToEntry(entryId, { quiet = false, top = false } = {}) {
     // In the session but not loaded yet (a view brings only the newest): load back to it first.
     if (view.order.includes(entryId) && !isLoaded(view, entryId)) {
         return loadEarlier({ from: entryId }).then(
-            () => current() && isLoaded(store.state.view, entryId) && show(entryId, jump, quiet, top),
+            () =>
+                current() && isLoaded(store.state.view, entryId) && show(entryId, jump, quiet, top),
             (error) => {
                 notify("error", error.message ?? String(error));
 
