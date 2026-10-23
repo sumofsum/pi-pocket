@@ -41,7 +41,7 @@ export type GitFolder = {
         detached?: true;
         /** The newest commit, the one before the changes. */
         head?: GitCommit;
-        /** The newest three commits, newest first. */
+        /** The newest commits, newest first, at most `MAX_COMMITS`. */
         commits: GitCommit[];
         /** The branch's remote branch, and how far apart they are. */
         upstream?: { name: string; ahead: number; behind: number; gone?: true };
@@ -69,6 +69,8 @@ type SessionFolder = {
     worktree?: unknown;
 };
 
+/** The most commits the panel shows for one folder. */
+const MAX_COMMITS = 10;
 /** The most changed files the panel lists for one folder; the rest are counted. */
 const MAX_FILES = 100;
 /** The most untracked files whose lines are counted; the rest keep their count unknown. */
@@ -232,7 +234,7 @@ async function inspect(cwd: string, onlyHere: boolean): Promise<"none" | { error
 
     const [statusOut, commitsOut] = await Promise.all([
         git(root, ["status", "--porcelain=v1", "-b", "-z", "--untracked-files=normal"]),
-        git(root, ["log", "-3", "--format=%h%x00%s%x00%ct%x00"]).catch(() => ""),
+        git(root, ["log", `-${MAX_COMMITS}`, "--format=%h%x00%s%x00%ct%x00"]).catch(() => ""),
     ]);
     const { branch, changes: allChanges } = parseStatusWithBranch(statusOut);
     // Someone invited to one session sees its folder's files only, as Changes does for them.

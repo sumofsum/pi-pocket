@@ -127,3 +127,20 @@ test("a folder only archived sessions use is not listed", async () => {
 
     assert.equal(status.folders.length, 0);
 });
+
+test("a folder shows at most its ten newest commits", async () => {
+    const repo = repoIn("git-status-history");
+
+    for (let number = 1; number <= 12; number++) {
+        writeFileSync(join(repo, `file-${number}.txt`), `${number}\n`.repeat(number));
+        gitIn(repo, "add", "-A");
+        gitIn(repo, "commit", "-qm", `commit ${number}`);
+    }
+
+    const status = await gitStatuses([{ cwd: repo }], { refresh: true });
+    const commits = status.folders[0]?.repo?.commits ?? [];
+
+    assert.equal(commits.length, 10);
+    assert.equal(commits[0]?.subject, "commit 12");
+    assert.equal(commits[9]?.subject, "commit 3");
+});
