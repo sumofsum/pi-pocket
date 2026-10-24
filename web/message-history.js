@@ -253,12 +253,25 @@ function TurnMeta({ message, open }) {
     </span>`;
 }
 
+/** The line between the prompts the conversation has loaded and the older ones above them. */
+function Earlier() {
+    return html`<div
+        class="message-history-earlier"
+        role="separator"
+        aria-label="Earlier messages, above the ones the conversation has loaded"
+    >
+        <span>Earlier</span>
+    </div>`;
+}
+
 /**
  * The message box's history popover: every prompt sent here, oldest first, with who sent it when others are here. The
  * first time it opens it starts at the newest (the bottom); after that it reopens where it was left. Tapping one of
- * yours replaces the box's text; the target button jumps to the message in the conversation.
+ * yours replaces the box's text; the target button jumps to the message in the conversation, loading earlier messages
+ * first when the transcript has not loaded it yet. Prompts above the transcript's window are faded but readable, and
+ * an Earlier line marks where that window begins.
  */
-export function MessageHistory({ open, focusId, messages, onClose, onPick, onJump }) {
+export function MessageHistory({ open, focusId, messages, boundaryId, onClose, onPick, onJump }) {
     const popover = useRef(null);
     const [copied, setCopied] = useState(null);
     const [filter, setFilter] = useState("");
@@ -488,6 +501,20 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
 
     const promptMessages = messages.filter((message) => !message.divider);
     const count = promptMessages.length;
+    // The first prompt the transcript shows: prompts before it are not loaded there (muted, and a jump loads them).
+    const boundaryAt =
+        boundaryId === null || boundaryId === undefined
+            ? -1
+            : messages.findIndex((message) => String(message.id) === String(boundaryId));
+    const earlierAt = boundaryAt > 0 ? boundaryAt : -1;
+    const earlierIds = new Set(
+        earlierAt === -1
+            ? []
+            : messages
+                  .slice(0, earlierAt)
+                  .filter((message) => !message.divider)
+                  .map((message) => String(message.id)),
+    );
     const query = filter.trim().toLowerCase();
     const shown =
         query === ""
@@ -526,7 +553,17 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
         query === ""
             ? `${count} ${count === 1 ? "message" : "messages"}`
             : `${shown.length} of ${count} messages`;
-    const rows = query === "" ? messages : shown;
+    // Filtering searches every prompt, so the dividers (the Earlier line and compactions) step aside.
+    const rows =
+        query === ""
+            ? earlierAt === -1
+                ? messages
+                : [
+                      ...messages.slice(0, earlierAt),
+                      { id: "earlier", earlier: true },
+                      ...messages.slice(earlierAt),
+                  ]
+            : shown;
 
     useEffect(() => {
         if (!open || query === "") {
@@ -694,14 +731,17 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                     : shown.length === 0
                       ? html`<p class="message-history-empty">No messages match.</p>`
                       : rows.map((message) =>
-                            message.divider
-                                ? html`<${Compaction}
-                                      key=${message.id}
-                                      message=${message}
-                                  />`
-                                : html`<div
+                            message.earlier
+                                ? html`<${Earlier} key="earlier" />`
+                                : message.divider
+                                  ? html`<${Compaction}
+                                        key=${message.id}
+                                        message=${message}
+                                    />`
+                                  : html`<div
                                 class=${[
                                     "message-history-item",
+                                    earlierIds.has(String(message.id)) ? "earlier" : "",
                                     String(message.id) === String(focusId) ? "current" : "",
                                     message.working ? "working" : "",
                                 ]

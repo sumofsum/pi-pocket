@@ -46,6 +46,7 @@ import {
 } from "./docs.ts";
 import { COMMAND_ENTRY, SHELL_ENTRY } from "./entry-format.ts";
 import { agentInfo } from "./models.ts";
+import { type PromptSummary, promptSummaries } from "./prompt-summaries.ts";
 import {
     type ClientBlock,
     type ClientEntry,
@@ -779,6 +780,44 @@ export class Room {
                 ),
             before: start === 0 ? null : all[start]!.id,
         };
+    }
+
+    /**
+     * Every prompt and compaction of the active context as a small row for this person: the message history and the
+     * arrows over it show all of them, also the ones this tab has not loaded (no reply text is sent).
+     */
+    async promptSummaries(me: User): Promise<PromptSummary[]> {
+        const view = this.#view?.value;
+
+        if (view === undefined) {
+            return [];
+        }
+
+        const [all, before] = await Promise.all([
+            this.#app.transcripts.allInheritedEntries(this.id, false),
+            this.#app.transcripts.history(this.id, view.entries[0]?.id ?? 0, 100_000),
+        ]);
+        const entries = [
+            ...new Map([...before, ...all].map((entry) => [entry.id, entry] as const)).values(),
+        ].sort((a, b) => a.id - b.id);
+
+        const agent = agentInfo(
+            this.#app.models,
+            (view.docs["pi.agent"] ?? {}) as AgentState,
+            this.#app.defaultCwd,
+        );
+        const subagent = this.#app.sessionMeta(this.id) === undefined && this.parent !== undefined;
+
+        return promptSummaries(entries, {
+            authors: this.authors,
+            nameOf: (userId) => this.#app.config.userById(userId)?.name ?? "Someone",
+            me: me.id,
+            from: subagent ? "Main agent" : "Pi",
+            busy: this.#projectLive(view.docs["pi.live"] as LiveState | undefined).busy,
+            ...(agent.reasoning && agent.thinkingLevel !== "off"
+                ? { thinking: agent.thinkingLevel }
+                : {}),
+        });
     }
 
     /** The live run as tabs get it, projected once for each state of it. */

@@ -27,6 +27,7 @@ import {
 } from "./store.js";
 import { openSubagent, stateOf } from "./subagents.js";
 import { prefs } from "./theme.js";
+import { promptIds } from "./prompt-list.js";
 import {
     diffCounts,
     INLINE_TOOL,
@@ -2527,6 +2528,11 @@ export function Transcript() {
     const rows = entries.filter(isRow);
     const prompts = rows.filter((row) => row.kind === "user");
     const start = windowStart(rows, transcriptFrom);
+    // The arrows step through every prompt of the session, also the ones this tab has not loaded: a jump loads them.
+    const listed = store.state.promptList;
+    const summary =
+        listed && listed.conversationId === view.conversation?.id ? listed.prompts : null;
+    const navPrompts = useMemo(() => promptIds(summary, prompts), [summary, prompts]);
     const [fetching, setFetching] = useState(false);
 
     // The room the pane gives, for what may run wider than the column (a reply's code blocks and tables: style.css).
@@ -2896,7 +2902,7 @@ export function Transcript() {
         </main>
         <${TranscriptNav}
             scroller=${scroller}
-            prompts=${prompts}
+            prompts=${navPrompts}
             showJump=${showJump}
             onJump=${() => {
                 stick.current = true;

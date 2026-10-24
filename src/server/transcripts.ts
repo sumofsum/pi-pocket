@@ -136,6 +136,41 @@ export class Transcripts {
         return (await this.entriesAfter(id, 0, full)).entries;
     }
 
+    /** A conversation's whole history, including its fork parents up to each fork point, oldest first. */
+    async allInheritedEntries(id: ConversationId, full = false): Promise<ClientEntry[]> {
+        const chain: { id: ConversationId; through: number }[] = [];
+        let conversation = id;
+        let through = Number.POSITIVE_INFINITY;
+
+        await this.#app.harness.commit(async (tx) => {
+            for (;;) {
+                chain.unshift({ id: conversation, through });
+
+                const parent: ConversationRecord["parent"] = (await tx.conversation(conversation))
+                    ?.parent;
+
+                if (parent === undefined) {
+                    break;
+                }
+
+                through = Math.min(through, parent.at as unknown as number);
+                conversation = parent.conversationId;
+            }
+        }, context);
+
+        const seen = new Map<number, ClientEntry>();
+
+        for (const step of chain) {
+            for (const entry of await this.allEntries(step.id, full)) {
+                if (entry.id <= step.through) {
+                    seen.set(entry.id, entry);
+                }
+            }
+        }
+
+        return [...seen.values()].sort((a, b) => a.id - b.id);
+    }
+
     /**
      * The entries of a conversation's history newer than `after`, oldest first, as browsers get them, and the newest id
      * read (`after` when there is none). Entries never change, and a later one has a larger id, inherited ones too.

@@ -102,6 +102,8 @@ export const store = {
         view: emptyView(),
         ...peopleFor(routeConversation()),
         history: null,
+        /** Every prompt of the session as the server summarizes it, for the history and the arrows: `{ conversationId, prompts }`; null until fetched. */
+        promptList: null,
         /** The id of the oldest transcript entry shown, or null for the newest `TRANSCRIPT_ROWS` rows. */
         transcriptFrom: null,
         missing: null,
@@ -1032,6 +1034,7 @@ export function navigate(conversationId, { replace = false, sheet = null } = {})
         ...peopleFor(conversationId),
         browser: null,
         history: null,
+        promptList: null,
         transcriptFrom: null,
         missing: null,
         drawer: false,
@@ -1052,6 +1055,7 @@ onRoute(() => {
             ...peopleFor(id),
             browser: null,
             history: null,
+            promptList: null,
             transcriptFrom: null,
             missing: null,
             sheet: null,
@@ -1142,6 +1146,8 @@ export const actions = {
     setPlan: (on) => api(`c/${current()}/plan`, { on }),
     approvePlan: () => api(`c/${current()}/plan`, { approve: true }),
     prompts: () => api(`c/${current()}/prompts`),
+    /** Every prompt of the session as a small summary, oldest first: `{ prompts }` (`prompt-list.js`). */
+    promptHistory: () => api(`c/${current()}/prompt-history`),
     trust: () => api(`c/${current()}/trust`),
     /** `trust`, `trust-parent`, or `distrust`, as Pi's `/trust` offers them. */
     setTrust: (choice) => api(`c/${current()}/trust`, { choice }),
@@ -1280,6 +1286,51 @@ export function loadEarlier({ rows, from } = {}) {
         });
 
     loading = { conversationId, promise };
+
+    return promise;
+}
+
+let prompting = null;
+
+/**
+ * The session's every prompt as the server summarizes it, for the history and the arrows over it: fetched once for a
+ * session, or again with `force` after a compaction changes what the active context holds. Rows this tab has loaded
+ * replace the server's for the same prompt (`prompt-list.js`). A failure leaves the loaded rows as the whole list.
+ */
+export function ensurePrompts(conversationId = store.state.conversationId, { force = false } = {}) {
+    if (conversationId === null || conversationId === undefined) {
+        return Promise.resolve(null);
+    }
+
+    const known = store.state.promptList;
+
+    if (!force && known?.conversationId === conversationId) {
+        return Promise.resolve(known.prompts);
+    }
+
+    if (prompting?.conversationId === conversationId) {
+        return prompting.promise;
+    }
+
+    const promise = actions
+        .promptHistory()
+        .then((data) => {
+            const prompts = Array.isArray(data?.prompts) ? data.prompts : [];
+
+            if (store.state.conversationId === conversationId) {
+                store.set({ promptList: { conversationId, prompts } });
+            }
+
+            return prompts;
+        })
+        .catch(() => null)
+        .finally(() => {
+            if (prompting?.promise === promise) {
+                prompting = null;
+            }
+        });
+
+    prompting = { conversationId, promise };
 
     return promise;
 }

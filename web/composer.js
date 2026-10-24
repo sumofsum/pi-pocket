@@ -19,11 +19,14 @@ import {
     canSteer,
     collab,
     drafts,
+    ensurePrompts,
     isRow,
+    loadedFrom,
     navigate,
     notify,
     openSheet,
     store,
+    TRANSCRIPT_ROWS,
     typing,
     uid,
 } from "./store.js";
@@ -45,9 +48,9 @@ import {
     modelLabel,
     plainText,
     Spinner,
-    splitAttachments,
 } from "./ui.js";
 import { MessageHistory } from "./message-history.js";
+import { loadedPrompts, mergePrompts, promptBoundary, windowStart } from "./prompt-list.js";
 import { currentPrompt, subscribeCurrentPrompt } from "./nav-current.js";
 
 /** The explicit route to the parent on every layout, outside the dock and the scrolling conversation. */
@@ -515,217 +518,49 @@ export function Composer() {
     const meId = store.state.me?.id;
     const users = store.state.users;
 
-    /** Every prompt in the session, oldest first, with who sent it and where the context was compacted; your own without attachments or app-made prefixes. */
-    const sessionMessages = useMemo(() => {
-        if (!meId) {
-            return [];
-        }
-
-        const found = [];
-        const finished = new Map();
+    // Every prompt of the session, oldest first: this tab's loaded rows with the server's summary of the whole list
+    // after them (`prompt-list.js`), so the history shows and jumps to prompts this tab has not loaded.
+    const loaded = useMemo(
+        () =>
+            loadedPrompts(view, {
+                meId,
+                users,
+                kind: view.conversation?.kind,
+            }),
+        [
+            view.order,
+            view.entries,
+            view.authors,
+            view.live?.busy,
+            meId,
+            users,
+            view.agent,
+            view.conversation?.kind,
+        ],
+    );
+    const listed = store.state.promptList;
+    const full = listed && listed.conversationId === conversationId ? listed.prompts : null;
+    const sessionMessages = useMemo(() => mergePrompts(full, loaded), [full, loaded]);
+    // The first prompt the transcript shows: every prompt before it waits behind "Show earlier messages".
+    const boundaryId = useMemo(() => {
         const rows = view.order
+            .slice(loadedFrom(view))
             .map((id) => view.entries.get(id))
             .filter((entry) => entry && isRow(entry));
-        let asked = null;
-        let answered = null;
+        const start = windowStart(rows, store.state.transcriptFrom, TRANSCRIPT_ROWS);
 
-        const remember = () => {
-            if (asked?.at === undefined || answered?.at === undefined) {
-                return;
-            }
+        return promptBoundary(rows, start);
+    }, [view.order, view.entries, store.state.transcriptFrom]);
 
-            const took = answered.at - asked.at;
+    // The whole list, and again after a compaction or reset moves the active context's first entry.
+    const firstEntry = view.order[0];
 
-            if (Number.isFinite(took) && took >= 0) {
-                finished.set(asked.id, took);
-            }
-        };
-
-        for (const entry of rows) {
-            if (entry.kind === "user") {
-                remember();
-                asked = entry;
-                answered = null;
-            } else if (entry.kind === "assistant" && asked) {
-                answered = entry;
-            }
-        }
-
-        // A turn still running has only its start: wait for Pi to finish before showing a time.
-        if (!view.live.busy) {
-            remember();
-        }
-
-        const lastUser = rows.findLast((entry) => entry.kind === "user");
-        const workingId = view.live.busy ? lastUser?.id : undefined;
-
-        // What each turn did after its prompt: tools and files, model, outcome, and what its replies cost.
-        const turns = new Map();
-        let turn = null;
-
-        for (const id of view.order) {
-            const entry = view.entries.get(id);
-
-            if (!entry) {
-                continue;
-            }
-
-            if (entry.kind === "user") {
-                turn = {
-                    tools: 0,
-                    files: new Set(),
-                    cost: 0,
-                    outcome: undefined,
-                    detail: undefined,
-                    model: undefined,
-                    provider: undefined,
-                    replies: 0,
-                };
-                turns.set(entry.id, turn);
-                continue;
-            }
-
-            if (!turn || entry.kind !== "assistant") {
-                continue;
-            }
-
-            turn.replies += 1;
-
-            if (typeof entry.model === "string") {
-                turn.model = entry.model;
-                turn.provider = entry.provider;
-            }
-
-            if (typeof entry.cost === "number" && Number.isFinite(entry.cost)) {
-                turn.cost += entry.cost;
-            }
-
-            for (const block of entry.blocks ?? []) {
-                if (block?.type !== "toolCall") {
-                    continue;
-                }
-
-                turn.tools += 1;
-                const path = block.args?.path;
-
-                if (typeof path === "string" && path.trim() !== "") {
-                    turn.files.add(path);
-                }
-            }
-
-            if (entry.stopReason === "error") {
-                turn.outcome = "failed";
-                turn.detail = entry.error;
-            } else if (entry.stopReason === "aborted") {
-                turn.outcome = "stopped";
-            } else if (entry.stopReason === "length") {
-                turn.outcome = "cut off";
-            }
-        }
-
-        for (const [id, info] of turns) {
-            if (info.replies === 0 && !(view.live.busy && id === workingId)) {
-                info.outcome = "stopped";
-            }
-        }
-
-        const thinking =
-            view.agent?.reasoning && view.agent?.thinkingLevel !== "off"
-                ? view.agent.thinkingLevel
-                : undefined;
-
-        for (const id of view.order) {
-            const entry = view.entries.get(id);
-
-            if (!entry) {
-                continue;
-            }
-
-            if (entry.kind === "compaction") {
-                found.push({
-                    id: entry.id,
-                    at: entry.at,
-                    divider: true,
-                    summary: entry.summary ?? "",
-                });
-                continue;
-            }
-
-            if (!isRow(entry) || entry.kind !== "user") {
-                continue;
-            }
-
-            const authorId = view.authors?.[entry.id];
-            const mine = authorId !== undefined && authorId === meId;
-            const named = authorId
-                ? (users.find((user) => user.id === authorId)?.name ?? "Someone")
-                : (entry.from ?? (view.conversation?.kind === "subagent" ? "Main agent" : "Pi"));
-            const author = mine ? "You" : named;
-            const [written, attached = ""] = splitAttachments(entry.text);
-            let text = written.trim();
-            const via = /^\[via [^\]\n]{1,300}\] /.exec(text);
-
-            if (via) {
-                text = text.slice(via[0].length);
-            }
-
-            if (text.startsWith("[scheduled] ")) {
-                text = text.slice("[scheduled] ".length);
-            }
-
-            const lines = attached.split("\n").filter((line) => line.trim() !== "");
-            const image =
-                entry.images > 0 ||
-                lines.some((line) => ATTACHED_IMAGE.test(line)) ||
-                (entry.files?.some((path) => IMAGE_FILE.test(path)) ?? false);
-            const file =
-                lines.some((line) => !ATTACHED_IMAGE.test(line)) ||
-                (entry.files?.some((path) => !IMAGE_FILE.test(path)) ?? false);
-            const attachmentsLabel =
-                image && file
-                    ? "Image and file attached"
-                    : image
-                      ? "Image attached"
-                      : file
-                        ? "File attached"
-                        : "No text";
-
-            const info = turns.get(entry.id);
-
-            found.push({
-                id: entry.id,
-                at: entry.at,
-                text,
-                author,
-                mine,
-                pickable: mine && text !== "",
-                attachmentsLabel,
-                image,
-                file,
-                took: finished.get(entry.id),
-                working: workingId !== undefined && entry.id === workingId,
-                tools: info?.tools ?? 0,
-                files: info?.files.size ?? 0,
-                cost: info?.cost ?? 0,
-                outcome: info?.outcome,
-                outcomeDetail: info?.detail,
-                model: info?.model,
-                provider: info?.provider,
-                thinking,
-            });
-        }
-
-        return found;
-    }, [
-        view.order,
-        view.entries,
-        view.authors,
-        view.live.busy,
-        meId,
-        users,
-        view.agent,
-        view.conversation?.kind,
-    ]);
+    useEffect(() => {
+        void ensurePrompts(conversationId);
+    }, [conversationId]);
+    useEffect(() => {
+        void ensurePrompts(conversationId, { force: true });
+    }, [conversationId, firstEntry]);
 
     // An Interrupt is for the run it was chosen in: when Pi stops working, an unused one goes back to Steer, so it does
     // not stop the next run. Steer and Queue stay as the person chose.
@@ -1760,6 +1595,7 @@ export function Composer() {
                         open=${historyOpen}
                         focusId=${historyFocus}
                         messages=${sessionMessages}
+                        boundaryId=${boundaryId}
                         onClose=${closeHistory}
                         onPick=${pickHistory}
                         onJump=${jumpHistory}

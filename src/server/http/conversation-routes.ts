@@ -565,6 +565,18 @@ export async function conversationRoutes(
         );
     }
 
+    // Every prompt and compaction of the active context, as the message history and the arrows over it show them: small
+    // rows only, never Pi's replies. Older rows a tab has not loaded come here too, so it can jump to any of them.
+    if (third === "prompt-history" && method === "GET") {
+        const room = await app.room(id);
+
+        try {
+            return json(response, 200, { prompts: await room.promptSummaries(user) });
+        } finally {
+            app.releaseRoom(room);
+        }
+    }
+
     // Earlier entries of the active context, for a tab that got only the newest with its view (protocol 4).
     if (third === "context" && method === "GET") {
         const number = (name: string) => {
