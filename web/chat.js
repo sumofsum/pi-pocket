@@ -23,6 +23,7 @@ import {
     peopleDocked,
     revealEntry,
     store,
+    TRANSCRIPT_ROWS,
     typing,
 } from "./store.js";
 import { copyText, html, Icon, Loader, Sheet, Spinner, timeAgo } from "./ui.js";
@@ -176,14 +177,30 @@ function show(entryId, jump, quiet, top) {
             }
 
             if (!found) {
-                if (!quiet) {
-                    notify(
-                        "info",
-                        "That message is in earlier history: use “Show earlier messages” at the top.",
-                    );
+                const prompts =
+                    store.state.promptList?.prompts?.filter((row) => row.kind === "prompt") ?? [];
+                const at = prompts.findIndex((row) => String(row.id) === String(entryId));
+                const loaded = store.state.view.order.filter((id) => {
+                    const entry = store.state.view.entries.get(id);
+
+                    return entry?.kind === "user";
+                });
+                const rows = at < 0 ? 0 : at - (prompts.length - loaded.length);
+
+                if (
+                    rows > 2 * TRANSCRIPT_ROWS &&
+                    !confirm(
+                        `This prompt is about ${rows} rows above the loaded conversation. Load all earlier messages?`,
+                    )
+                ) {
+                    return resolve(false);
                 }
 
-                return resolve(false);
+                void loadEarlier({ rows: 2 * TRANSCRIPT_ROWS }).then(() =>
+                    show(entryId, jump, quiet, top).then(resolve),
+                );
+
+                return;
             }
 
             // The mark has no size: its group's line is what shows.

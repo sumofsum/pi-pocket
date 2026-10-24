@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { Avatar } from "./avatar.js";
 import { boxKey, keyBox } from "./box-keys.js";
+import { splitAttachments } from "./attachments.js";
 import { chatUnread, jumpToEntry, TypingLine } from "./chat.js";
 import {
     loadTemplates,
