@@ -555,6 +555,14 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
         }
     };
 
+    const toTop = () => {
+        const first = shown[0];
+
+        if (first) {
+            jumpTo(first);
+        }
+    };
+
     const jumpTo = (message) => {
         if (message) {
             document.dispatchEvent(new CustomEvent("pocket:jump-prompt", { detail: message.id }));
@@ -568,8 +576,8 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
         jumpTo(target);
     };
 
-    // While the list is open: Up/Down step, Home/End go to the ends, Ctrl+Up/Down page it. They work from the
-    // filter too, which keeps the focus while the highlight moves.
+    // While the list is open: Up/Down step, Ctrl+Up/Down or PageUp/PageDown page it. They work from the filter
+    // too, which keeps the focus while the highlight moves.
     useEffect(() => {
         if (!open) {
             return undefined;
@@ -627,14 +635,6 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                 event.preventDefault();
                 event.stopPropagation();
                 step(key === "ArrowUp" ? -1 : 1);
-
-                return;
-            }
-
-            if (!modified && (key === "Home" || key === "End")) {
-                event.preventDefault();
-                event.stopPropagation();
-                jumpTo(key === "Home" ? shown[0] : shown[shown.length - 1]);
             }
         };
 
@@ -654,14 +654,28 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
         <div class="message-history-head">
             <span class="message-history-title">${title}</span>
             <span class="message-history-count" title=${countTitle}>${countText}</span>
-            <button
-                class="message-history-close"
-                type="button"
-                aria-label="Close message history"
-                onClick=${() => close.current(true)}
-            >
-                <${Icon} name="close" size=${15} />
-            </button>
+            <div class="message-history-head-actions">
+                ${
+                    count > 0 &&
+                    html`<button
+                        class="message-history-top"
+                        type="button"
+                        title="Go to the first message"
+                        aria-label="Go to the first message"
+                        onClick=${toTop}
+                    >
+                        <${Icon} name="up" size=${15} />
+                    </button>`
+                }
+                <button
+                    class="message-history-close"
+                    type="button"
+                    aria-label="Close message history"
+                    onClick=${() => close.current(true)}
+                >
+                    <${Icon} name="close" size=${15} />
+                </button>
+            </div>
         </div>
         <div
             class="message-history-list"
