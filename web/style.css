@@ -3948,6 +3948,11 @@ body.history-open .scroll-tools > * {
     text-overflow: ellipsis;
 }
 
+.message-history-hint .icon {
+    display: inline-block;
+    vertical-align: -2px;
+}
+
 .message-history-filter {
     flex: 1;
     min-width: 0;
