@@ -2901,11 +2901,6 @@ pre.diff .del {
     pointer-events: none;
 }
 
-.scroll-tools.top {
-    top: 0.8rem;
-    bottom: auto;
-}
-
 .scroll-tools > * {
     pointer-events: auto;
     transition: opacity 600ms var(--ease-out);
