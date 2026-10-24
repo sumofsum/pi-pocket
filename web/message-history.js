@@ -701,7 +701,7 @@ export function MessageHistory({ open, focusId, messages, boundaryId, onClose, o
                         aria-label="Go to the first message"
                         onClick=${toTop}
                     >
-                        <${Icon} name="up" size=${15} />
+                        <${Icon} name="top" size=${15} />
                     </button>`
                 }
                 <button
