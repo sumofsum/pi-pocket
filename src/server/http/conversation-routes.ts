@@ -577,6 +577,11 @@ export async function conversationRoutes(
         }
     }
 
+    // The whole stored history, including fork parents and pre-active entries, for a jump above the active window.
+    if (third === "inherited-context" && method === "GET") {
+        return json(response, 200, await app.transcripts.allInheritedEntries(id, false));
+    }
+
     // Earlier entries of the active context, for a tab that got only the newest with its view (protocol 4).
     if (third === "context" && method === "GET") {
         const number = (name: string) => {

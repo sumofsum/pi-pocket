@@ -1194,7 +1194,7 @@ export const actions = {
     /** Show a path in the server machine's file manager: the owner's only. */
     reveal: (path) => api(`c/${current()}/reveal`, { path }),
     history: (before) => api(`c/${current()}/history?before=${before}`),
-    context: (before, query) => api(`c/${current()}/context?before=${before}&${query}`),
+    context: (before, query) => api(`c/${current()}/inherited-context?before=${before}&${query}`),
 };
 
 /**
@@ -1260,13 +1260,10 @@ export function loadEarlier({ rows, from } = {}) {
                     return {};
                 }
 
-                const keep = new Set(state.view.order);
                 const entries = new Map();
 
                 for (const entry of earlier) {
-                    if (keep.has(entry.id)) {
-                        entries.set(entry.id, entry);
-                    }
+                    entries.set(entry.id, entry);
                 }
 
                 // What the tab has wins, except a light one (`partial`): the one loaded is whole.
@@ -1276,7 +1273,15 @@ export function loadEarlier({ rows, from } = {}) {
                     }
                 }
 
-                return { view: { ...state.view, entries } };
+                // The earlier entries can be outside the active order (a fork parent, or before a compaction): add
+                // them, oldest first, so the transcript can show and jump to them.
+                const earlierIds = new Set(earlier.map((entry) => entry.id));
+                const order = [
+                    ...earlier.map((entry) => entry.id),
+                    ...state.view.order.filter((id) => !earlierIds.has(id)),
+                ];
+
+                return { view: { ...state.view, order, entries } };
             }),
         )
         .finally(() => {
