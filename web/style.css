@@ -2901,6 +2901,11 @@ pre.diff .del {
     pointer-events: none;
 }
 
+.scroll-tools.top {
+    top: 0.8rem;
+    bottom: auto;
+}
+
 .scroll-tools > * {
     pointer-events: auto;
     transition: opacity 600ms var(--ease-out);
@@ -3981,8 +3986,15 @@ body.history-open .scroll-tools > * {
     font: 10px var(--mono);
 }
 
-.message-history-close {
+.message-history-head-actions {
     margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.message-history-close,
+.message-history-top {
     width: 28px;
     height: 28px;
     display: grid;
@@ -3992,7 +4004,8 @@ body.history-open .scroll-tools > * {
 }
 
 @media (hover: hover) {
-    .message-history-close:hover {
+    .message-history-close:hover,
+    .message-history-top:hover {
         background: var(--hover);
         color: var(--text);
     }
@@ -4510,6 +4523,7 @@ body.history-open .scroll-tools > * {
     }
 
     .message-history-close,
+    .message-history-top,
     .message-history-copy,
     .message-history-jump,
     .message-history-work-slot,
