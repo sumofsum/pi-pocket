@@ -279,7 +279,32 @@ export function TranscriptNav({ scroller, prompts, showJump, onJump, conversatio
         }
     };
 
-    return html`<div
+    const goTop = () => {
+        const first = prompts[0];
+
+        if (first) {
+            go(first.id);
+        }
+    };
+
+    return html`<div class="scroll-tools top"
+        onPointerDown=${() => wake()}
+        onClick=${() => wake()}
+    >
+        ${
+            total > 0 &&
+            html`<button
+                class="jump"
+                type="button"
+                title="To the top"
+                aria-label="To the top"
+                onClick=${goTop}
+            >
+                <${Icon} name="up" />
+            </button>`
+        }
+    </div>
+    <div
         class=${awake ? "scroll-tools awake" : "scroll-tools"}
         onPointerDown=${() => wake()}
         onClick=${() => wake()}
