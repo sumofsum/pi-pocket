@@ -505,9 +505,10 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
         : null;
     const shared = promptMessages.some((message) => !message.mine);
     const title = shared ? "Messages" : "Your messages";
+    const paste = html`<${Icon} name="paste" size=${12} />`;
     const hint = focused?.working
-        ? focused.mine
-            ? "Pi is working · tap to put it back"
+        ? focused.mine && focused.pickable
+            ? html`Pi is working · tap to jump · ${paste} to put it back`
             : "Pi is working · tap to jump"
         : focused && !focused.pickable
           ? !focused.mine
@@ -518,8 +519,8 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                     : "No text · tap to jump"
                 : "Jump only · tap to jump"
           : shared
-            ? "Tap yours to put it back · ◎ to jump"
-            : "Tap to put it back · ◎ to jump";
+            ? html`Tap to jump · ${paste} to put yours back`
+            : html`Tap to jump · ${paste} to put it back`;
     const countText = query === "" ? String(count) : `${shown.length} of ${count}`;
     const countTitle =
         query === ""
@@ -699,16 +700,11 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                                 <button
                                     class="message-history-pick"
                                     type="button"
-                                    title=${
-                                        message.pickable
-                                            ? "Put this message in the box"
-                                            : "Jump to this message"
-                                    }
+                                    title="Jump to this message"
                                     aria-current=${
                                         String(message.id) === String(focusId) ? "true" : undefined
                                     }
-                                    onClick=${() =>
-                                        message.pickable ? onPick(message) : onJump(message)}
+                                    onClick=${() => onJump(message)}
                                 >
                                     <span class="message-history-when">
                                         <${Clock} at=${message.at} />
@@ -788,9 +784,20 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                                         ? html`<button
                                               class="message-history-work-slot"
                                               type="button"
-                                              title="Scroll to this message"
-                                              aria-label="Scroll to this message"
-                                              onClick=${() => onJump(message)}
+                                              title=${
+                                                  message.pickable
+                                                      ? "Put this message in the box"
+                                                      : "Scroll to this message"
+                                              }
+                                              aria-label=${
+                                                  message.pickable
+                                                      ? "Put this message in the box"
+                                                      : "Scroll to this message"
+                                              }
+                                              onClick=${() =>
+                                                  message.pickable
+                                                      ? onPick(message)
+                                                      : onJump(message)}
                                           >
                                               <span
                                                   class="message-history-working"
@@ -802,11 +809,25 @@ export function MessageHistory({ open, focusId, messages, onClose, onPick, onJum
                                         : html`<button
                                               class="message-history-jump"
                                               type="button"
-                                              title="Scroll to this message"
-                                              aria-label="Scroll to this message"
-                                              onClick=${() => onJump(message)}
+                                              title=${
+                                                  message.pickable
+                                                      ? "Put this message in the box"
+                                                      : "Scroll to this message"
+                                              }
+                                              aria-label=${
+                                                  message.pickable
+                                                      ? "Put this message in the box"
+                                                      : "Scroll to this message"
+                                              }
+                                              onClick=${() =>
+                                                  message.pickable
+                                                      ? onPick(message)
+                                                      : onJump(message)}
                                           >
-                                              <${Icon} name="locate" size=${16} />
+                                              <${Icon}
+                                                  name=${message.pickable ? "paste" : "locate"}
+                                                  size=${16}
+                                              />
                                           </button>`
                                 }
                             </div>`,
