@@ -287,24 +287,7 @@ export function TranscriptNav({ scroller, prompts, showJump, onJump, conversatio
         }
     };
 
-    return html`<div class="scroll-tools top"
-        onPointerDown=${() => wake()}
-        onClick=${() => wake()}
-    >
-        ${
-            total > 0 &&
-            html`<button
-                class="jump"
-                type="button"
-                title="To the top"
-                aria-label="To the top"
-                onClick=${goTop}
-            >
-                <${Icon} name="up" />
-            </button>`
-        }
-    </div>
-    <div
+    return html`<div
         class=${awake ? "scroll-tools awake" : "scroll-tools"}
         onPointerDown=${() => wake()}
         onClick=${() => wake()}
@@ -321,6 +304,18 @@ export function TranscriptNav({ scroller, prompts, showJump, onJump, conversatio
             >
                 <${Icon} name="history" size=${13} />
                 <span>${index + 1}/${total}</span>
+            </button>`
+        }
+        ${
+            total > 0 &&
+            html`<button
+                class="jump"
+                type="button"
+                title="To the first message"
+                aria-label="To the first message"
+                onClick=${goTop}
+            >
+                <${Icon} name="top" />
             </button>`
         }
         ${
