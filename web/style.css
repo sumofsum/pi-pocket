@@ -4059,6 +4059,35 @@ body.history-open .scroll-tools > * {
     background: var(--hover);
 }
 
+/* Prompts the transcript has not loaded yet: quieter words at AA contrast (--muted is 4.5:1 or more on every palette),
+   until a jump loads them. The Earlier line below the oldest of them says why. */
+.message-history-item.earlier .message-history-text {
+    color: var(--muted);
+}
+
+/* The line where the transcript's loaded window begins ("Show earlier messages" above it). */
+.message-history-earlier {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 6px 3px;
+    color: var(--muted);
+}
+
+.message-history-earlier::before,
+.message-history-earlier::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--hair-2);
+}
+
+.message-history-earlier span {
+    font: 600 9.5px/1 var(--sans);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
 /* The prompt the conversation's arrows are on, when the list opens. */
 .message-history-item.current {
     background: var(--accent-soft);

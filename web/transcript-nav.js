@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { jumpToEntry } from "./chat.js";
 import { clearCurrentPrompt, setCurrentPrompt } from "./nav-current.js";
-import { revealEntry } from "./store.js";
+import { revealEntry, store } from "./store.js";
 import { html, Icon } from "./ui.js";
 
 const SLEEP_MS = 1250;
@@ -66,6 +66,7 @@ export function TranscriptNav({ scroller, prompts, showJump, onJump, conversatio
         back.current = {
             atBottom: element.scrollHeight - element.scrollTop - element.clientHeight <= 24,
             current: current.current,
+            from: store.state.transcriptFrom,
             top: element.scrollTop,
         };
         setBacking(true);
@@ -101,16 +102,34 @@ export function TranscriptNav({ scroller, prompts, showJump, onJump, conversatio
         const last = list.current[list.current.length - 1];
         const atNewest = last && String(target.current) === String(last.id);
 
-        if (target.atBottom && atNewest) {
-            element.scrollTop = element.scrollHeight;
-            select(last.id);
-            onJump();
-            announceMessage(last.id);
-        } else {
-            element.scrollTop = target.top;
-            select(target.current);
-            announceMessage(target.current);
+        // A jump may have loaded earlier messages, and moved the window to the prompt it went to: put the window back
+        // before restoring the place, so the rows the reader was on are the ones shown again.
+        if (store.state.transcriptFrom !== target.from) {
+            store.set({ transcriptFrom: target.from });
         }
+
+        const place = () => {
+            if (!scroller.current) {
+                return;
+            }
+
+            if (target.atBottom && atNewest) {
+                scroller.current.scrollTop = scroller.current.scrollHeight;
+            } else {
+                scroller.current.scrollTop = target.top;
+            }
+        };
+
+        select(target.current);
+        announceMessage(target.current);
+        place();
+
+        if (target.atBottom && atNewest) {
+            onJump();
+        }
+
+        // The window's rows are drawn again after the state change: restore the place once they are.
+        requestAnimationFrame(place);
     };
 
     /** The prompt at the top of the view, or the newest at the bottom. */
@@ -222,9 +241,14 @@ export function TranscriptNav({ scroller, prompts, showJump, onJump, conversatio
         select(target.id);
         announceMessage(target.id);
         lock.current = performance.now() + WAKE_MS;
-        // A prompt above the rows on screen: show from it down, then bring it to the top and ring it.
+        // A prompt above the rows on screen: show from it down, then bring it to the top and ring it. One this tab has
+        // not loaded yet loads first (jumpToEntry), so the lock holds until the jump settles, however long that takes.
         revealEntry(target.id);
-        requestAnimationFrame(() => jumpToEntry(target.id, { top: true }));
+        requestAnimationFrame(() => {
+            Promise.resolve(jumpToEntry(target.id, { top: true })).finally(() => {
+                lock.current = performance.now() + WAKE_MS;
+            });
+        });
     };
 
     const goRef = useRef(go);

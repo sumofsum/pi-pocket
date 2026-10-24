@@ -5,9 +5,12 @@ import htm from "htm";
 import { marked } from "marked";
 import { Component, createContext, h } from "preact";
 import { useContext, useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import { ATTACHMENTS_HEADING, splitAttachments } from "./attachments.js";
 import { useDragToClose } from "./gestures.js";
 import { highlight, langOf } from "./highlight.js";
 import { actions, filesShown, notify, openSheet, store } from "./store.js";
+
+export { ATTACHMENTS_HEADING, splitAttachments };
 
 export const html = htm.bind(h);
 
@@ -885,19 +888,6 @@ export function plainText(markdown) {
         .replace(/(\*\*|__)(.+?)\1/g, "$2")
         .replace(/(^|[\s(])[*_]([^*_\s][^*_]*?)[*_](?=[\s).,!?:;]|$)/gm, "$1$2")
         .replace(/^[ \t]{0,3}(#{1,6}[ \t]+|>[ \t]?|[-*+][ \t]+|\d+\.[ \t]+)/gm, "");
-}
-
-/** What separates a message to Pi from the list of files attached to it, which the server adds. */
-export const ATTACHMENTS_HEADING = "\n\nAttached files (saved on the server):\n";
-
-/**
- * A message to Pi in two: what the person wrote, and the list of attached files if any. One with files alone, sent
- * before 0.14.0, has the heading without the blank line before it.
- */
-export function splitAttachments(text) {
-    return (text.startsWith(ATTACHMENTS_HEADING.trimStart()) ? `\n\n${text}` : text).split(
-        ATTACHMENTS_HEADING,
-    );
 }
 
 /** What a person wrote in a message to Pi, without the list of attached files. */
