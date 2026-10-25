@@ -197,7 +197,7 @@ after(async () => {
 /** How far the transcript is from its bottom, in pixels. */
 const gap = () =>
     inPage<number>(`
-        const scroller = document.querySelector(".pane > .scroller");
+        const scroller = document.querySelector(".pane .scroller");
 
         return JSON.stringify(Math.round(scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight));
     `);
@@ -1182,7 +1182,7 @@ test(
             await until(
                 () =>
                     run<boolean>(`
-                    return [".topbar", ".pane > .scroller", ".composer-wrap .composer"].every((each) => document.querySelector(each))
+                    return [".topbar", ".pane .scroller", ".composer-wrap .composer"].every((each) => document.querySelector(each))
                         && document.getAnimations().every((each) => each.effect?.getComputedTiming().iterations === Infinity);
                 `),
                 "the conversation",
@@ -1216,7 +1216,7 @@ test(
                 await plain<string[]>(`
                 const pad = (selector) => getComputedStyle(document.querySelector(selector)).paddingLeft;
 
-                return [pad(".topbar"), pad(".pane > .scroller")];
+                return [pad(".topbar"), pad(".pane .scroller")];
             `),
                 ["0px", "0px"],
             );
