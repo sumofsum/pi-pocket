@@ -95,7 +95,7 @@ test(
 
         const fits = JSON.parse(
             await page.evaluate(`
-                const scroller = document.querySelector(".pane > .scroller");
+                const scroller = document.querySelector(".pane .scroller");
                 const retry = document.querySelector(".live-retry").getBoundingClientRect();
 
                 return JSON.stringify(retry.right <= innerWidth && scroller.scrollWidth <= scroller.clientWidth);
