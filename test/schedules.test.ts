@@ -411,6 +411,8 @@ test("the limits in force bound what a session can schedule", async () => {
     for (const each of await items(id)) {
         await app.schedules.cancel(id, each.id);
     }
+});
+
 test("scheduled messages list across the sessions a person can see, soonest first", async () => {
     const first = await newSession(app);
     const second = await newSession(app);
