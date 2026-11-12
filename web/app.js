@@ -670,7 +670,7 @@ function App() {
                             ? html`<${PipBoardBox}><${StatusLine} /><//>`
                             : html`<${Composer} key=${state.conversationId} />`)
                     }`
-                          : html`<div class="home-list" data-part="home-list">
+                            : html`<div class="home-list" data-part="home-list">
                           <${RailNav} />
                           <${SessionList} />
                       </div>

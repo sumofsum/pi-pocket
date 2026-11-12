@@ -116,6 +116,7 @@ function sendingRequest(schedule: Schedule, run: number): string {
           ? requestFor(schedule.requestedBy, `schedule-${sending}`)
           : `schedule:${sending}`;
 }
+
 /** A scheduled message with the session it belongs to, as the list across sessions shows it. */
 export type SessionSchedule = Pick<
     Schedule,
