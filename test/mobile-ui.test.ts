@@ -1351,7 +1351,7 @@ test(
             );
             await new Promise((resolve) => setTimeout(resolve, 600));
             await page.evaluate(`
-                const scroller = document.querySelector(".pane > .scroller");
+                const scroller = document.querySelector(".pane .scroller");
 
                 scroller.scrollTop = ${place === "bottom" ? "scroller.scrollHeight" : "scroller.scrollHeight - scroller.clientHeight - 600"};
                 scroller.dispatchEvent(new Event("scroll"));
@@ -1400,7 +1400,7 @@ test(
 
                 while (performance.now() < end) {
                     await new Promise((resolve) => requestAnimationFrame(resolve));
-                    const scroller = document.querySelector(".pane > .scroller");
+                    const scroller = document.querySelector(".pane .scroller");
                     const column = scroller?.querySelector('[data-part="transcript"]');
                     const rows = column ? [...column.querySelectorAll(".user-row")] : [];
                     // The first row in view, as the reader sees it: its place on screen, frame to frame.
